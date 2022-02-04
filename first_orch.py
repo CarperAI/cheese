@@ -8,6 +8,7 @@ class orchestrator:
         self.inferencepipeline = inferencepipeline(model_name,model_name, task)
 
     def answerQuestion(self, number: int): #execute
+        
         return self.inferencepipeline.answer(self.questiondb.getstory(number), self.contextdb.getstory(number))
         
 class database:
@@ -21,14 +22,19 @@ class database:
         self.base = base
 
     def infile(self):
+        ''' opens file'''
         with open(self.base, 'r', encoding='utf-8') as file:
             all_data = file.read()
         return all_data
 
     def splitstories(self):
+            ''' split string into array
+                by line'''
             return self.infile().split('\n')
         
     def getstory(self, number: int):
+        ''' splits the string into array
+            then gives the line which is asked for'''
         return self.splitstories()[number]
 
 class inferencepipeline:
