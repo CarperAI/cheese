@@ -1,10 +1,8 @@
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
 class orchestrator:
-    def __init__(self, name: str, qfile: str, cfile: str, model_name: str, task: str):
-        self.name = name
-        self.questiondb = database(qfile)
-        self.contextdb = database(cfile)
+    def __init__(self, questionfile: str, contextfile: str, model_name: str, task: str):
+        self.db = [database(questionfile),database(contextfile)]
         self.inferencepipeline = inferencepipeline(model_name,model_name, task)
 
     def answerQuestion(self, number: int): #execute
