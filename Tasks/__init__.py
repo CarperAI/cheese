@@ -12,7 +12,6 @@ from Data import DataPipelineOutput
 
 _TASKPIPELINE: Dict[str,any] = {}
 
-
 def register_taskpipeline(name):
     """Decorator used register a task pipeline
 
