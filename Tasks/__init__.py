@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import dataclasses
+from dataclasses import dataclass
 from abc import abstractmethod
 
 import sys
 from typing import Dict, Tuple, Iterable, List
-
 from typeguard import typechecked
 
 from Data import DataPipelineOutput
+from Surveys import BaseSurveyInput
 
 _TASKPIPELINE: Dict[str,any] = {}
 
@@ -45,21 +45,24 @@ class BaseTaskPipeline:
     def __init__(self, config:BaseTaskPipelineConfig):
         self.config = config
 
+    @abstractmethod
     def construct_task(self) -> BaseSurveyInput:
         # call data pipeline
         # constructs prompts as needed
         # feed output the data+prompts to inference pipeline
-        # returns BaseSurveyInput
+       # returns BaseSurveyInput
         raise Exception("Must be overriden in child class.")
 
+    @abstractmethod
     def construct_survery(self, survey_input : BaseSurveyInput) -> BaseSurveyOutput:
         # calls construct task
         # Calls survey pipeline using the output from construct task
         # returns the finalized survey, saves survey piepline output to css/html, and stores survey in memory
         raise Exception("Must be overridden in child class.")
 
+    @abstractmethod
     def upload_prolific(self):
-        #uploads
+        #uploads to prolific
 
 
 def get_taskpipelines(name : str) -> BaseTaskPipeline:

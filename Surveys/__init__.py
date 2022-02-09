@@ -1,10 +1,16 @@
-from typing import Iterable
-from Data import DataPipelineOutput
-from Inference import BaseInferenceOutput
+from __future__ import annotations
 
 from dataclasses import dataclass
+from abc import abstractmethod
 
-_SURVEYPIPELINE = Dict[str,any] = {}
+import sys
+from typing import Dict, Tuple, Iterable, List
+from typeguard import typechecked
+
+from Data import DataPipelineOutput
+
+_SURVEYPIPELINE = Dict[str, any] = {}
+
 
 def register_surveypipeline(name):
     """Decorator used register a survey pipeline
@@ -31,31 +37,40 @@ def register_surveypipeline(name):
 
 @dataclass
 class BaseSurveyPipelineConfig:
-    name : str = "BaseSurveyPipelineConfig"
+    name: str = "BaseSurveyPipelineConfig"
+
+
+class BaseInferenceOutput:
+    pass
+
 
 @dataclass
 class BaseSurveyInput:
-    data_output : Iterable[DataPipelineOutput]
-    inference_output : Iterable[BaseInferenceOutput]
+    data_output: Iterable[DataPipelineOutput]
+    inference_output: Iterable[BaseInferenceOutput]
+
 
 @dataclass
 class BaseSurveyOutput:
-    HTML : str
+    HTML: str
+
 
 @typechecked
 class BaseSurveyPipeline:
     def __init__(self, config: BaseSurveyPipelineConfig):
         self.config = config
 
+    @abstractmethod
     def create_htmlfile(self, input: BaseSurveyInput) -> BaseSurveyOutput:
-        raise Exception ("Must be overridden in child class")
+        raise Exception("Must be overridden in child class")
 
+    @abstractmethod
     def create_report(self):
         # create output from completion of task
         return None
 
 
-def get_surveylines(name : str) -> BaseSurveyPipeline:
+def get_surveylines(name: str) -> BaseSurveyPipeline:
     """
     :param name:
         Name refers to the name of corresponding survey pipeline
@@ -64,6 +79,7 @@ def get_surveylines(name : str) -> BaseSurveyPipeline:
     """
     return _SURVEYPIPELINE[name.lower()]
 
+
 def get_surveypipelines_names() -> List[str]:
     """
     Gets the list of surveypipeline names
@@ -71,5 +87,3 @@ def get_surveypipelines_names() -> List[str]:
         A list of survey pipeline names
     """
     return _SURVEYPIPELINE.keys()
-
-

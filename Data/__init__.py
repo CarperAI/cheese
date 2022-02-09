@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import dataclasses
+from dataclasses import dataclass
 from abc import abstractmethod
 
 import sys
 from typing import Dict, Tuple, Iterable, List
 from typeguard import typechecked
-
 
 _DATAPIPELINES: Dict[str, any] = {}
 
@@ -33,20 +32,24 @@ def register_datapipeline(name):
 
     return cls
 
+
 @dataclass
 class BaseDataPipelineConfig:
-    name : str = "BaseDataPipelineConfig"
-    n_examples : int = -1 # defaults to all examples
+    name: str = "BaseDataPipelineConfig"
+    n_examples: int = -1  # defaults to all examples
+
 
 @dataclass
 class DataPipelineOutput:
-    examples : Iterable[str]
+    examples: Iterable[str]
+
 
 @typechecked
 class BaseDataPipeline:
-    def __init__(self, config : BaseDataPipelineConfig):
+    def __init__(self, config: BaseDataPipelineConfig):
         self.config = config
 
+    @abstractmethod
     def ingest(self):
         """
         Args:
@@ -56,6 +59,7 @@ class BaseDataPipeline:
         """
         raise Exception("Error: Must be overridden in child class.")
 
+    @abstractmethod
     def process(self) -> Iterable[DataPipelineOutput]:
         """
         Args:
@@ -68,7 +72,8 @@ class BaseDataPipeline:
 
 from Data.shmoops import *
 
-def get_datapipelines(name : str) -> BaseDataPipeline:
+
+def get_datapipelines(name: str) -> BaseDataPipeline:
     """
     :param name:
         Name refers to the name of corresponding data pipeline
@@ -76,6 +81,7 @@ def get_datapipelines(name : str) -> BaseDataPipeline:
         A data pipeline from the decorator registry
     """
     return _DATAPIPELINES[name.lower()]
+
 
 def get_datapipelines_names() -> List[str]:
     """
