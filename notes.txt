@@ -1,0 +1,13 @@
+Data Pipeline:
+	- Send to orchestrator, receive from orchestrator
+	- Doesn't need to (on its own) account for handling multiple MTurks at once (leave to orchestrator)
+	- Read dataset linearly, write as it receives from orchestrator
+	- Orchestrator needs a limit (maybe?) for how many jobs it can handle at once
+	- Doesn't need to be particularly crash resilient (leave that to orchestrator)
+
+Orchestrator
+	- Keep a state, tracks 
+
+Concerns:
+	- Exception handling? Should be mostly fine for local datasets
+	- Online datasets (datasets stored in buckets), how to handle exceptions with these
