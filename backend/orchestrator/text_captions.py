@@ -25,6 +25,8 @@ class TextCaptionOrchestrator(Orchestrator):
 
         # Prioritize active tasks
         if len(self.active_tasks) == 0:
+            if len(self.tasks) == 0:
+                return False # No tasks to do
             task = self.tasks.pop(0)
         else:
             task  = self.active_tasks.pop(0)
