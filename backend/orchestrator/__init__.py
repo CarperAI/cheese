@@ -48,15 +48,22 @@ class Orchestrator:
         """
         Backup the current state of the orchestrator.
         """
-        joblib.dump(self.tasks, 'tasks.pkl')
+        state = {
+            "tasks" : self.tasks,
+            "active_tasks" : self.active_tasks,
+            "done_tasks" : self.done_tasks
+        }
+        joblib.dump(state, 'orch_state.pkl')
     
     def restore_state(self):
         """
         Restore the state of the orchestrator from backup.
         """
-        self.tasks = joblib.load('tasks.pkl')
+        state = joblib.load('orch_state.pkl')
+        self.tasks = state["tasks"]
+        self.active_tasks = state["active_tasks"]
+        self.done_tasks = state["done_tasks"]
 
-    # TODO
     def is_free(self) -> bool:
         """
         Returns True if can accept more tasks

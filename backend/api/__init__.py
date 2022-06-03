@@ -70,6 +70,11 @@ class CHEESEAPI:
 
         return False
 
+    def backup_orch_state(self):
+        """
+        Backup orchestrator state
+        """
+        self.orch.backup_state()
 
     
 
