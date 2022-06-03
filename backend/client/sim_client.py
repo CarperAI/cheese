@@ -1,5 +1,6 @@
 from backend.tasks import Task, TaskType
 from backend.client  import Client
+from backend.client.states import ClientState as CS
 
 import random
 
@@ -20,4 +21,4 @@ class SimClient(Client):
         self.task.data.caption_index = caption_inds
         self.task.receiver = TaskType.PIPELINE
         self.task.sender = TaskType.USER
-        self.busy = False
+        self.state = CS.IDLE
