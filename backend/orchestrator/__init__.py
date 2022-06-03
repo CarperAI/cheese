@@ -38,7 +38,6 @@ class Orchestrator:
         except:
             pass
 
-    # TODO
     def set_client(self, client):
         """
         Sets the client object for the orchestrator.
@@ -102,4 +101,10 @@ class Orchestrator:
         Query the clients for completed tasks
         """
         pass
+
+    def get_total_tasks(self) -> int:
+        """
+        Get total number of tasks still needing to be finished
+        """
+        return len(self.tasks) + len(self.active_tasks) + len(self.done_tasks)
 
