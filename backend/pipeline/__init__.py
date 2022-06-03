@@ -21,7 +21,7 @@ class Pipeline:
 
     @abstractmethod
     def create_data_task(self) -> Task:
-        """Creates a task for the orchestrator"""
+        """Creates a task for the orchestrator. Should return None when data is exhausted."""
         pass
 
     @abstractmethod

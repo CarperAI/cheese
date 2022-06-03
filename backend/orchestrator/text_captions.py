@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from backend.tasks import Task, TaskType
+from backend.tasks import Task
+from backend.tasks import TaskType as TT
 from backend.orchestrator import Orchestrator
 
 class TextCaptionOrchestrator(Orchestrator):
@@ -30,11 +31,11 @@ class TextCaptionOrchestrator(Orchestrator):
 
         success = False
         
-        if task.receiver == TaskType.PIPELINE:
+        if task.receiver == TT.PIPELINE:
             # If pipeline is receiving task, that means the task is done
             self.done_tasks.append(task)
             success = True
-        elif task.receiver == TaskType.USER:
+        elif task.receiver == TT.USER:
             # Find a free client and assign task to it
             for client in self.clients:
                 if client.is_free():
@@ -42,7 +43,7 @@ class TextCaptionOrchestrator(Orchestrator):
                     client.receive_task(task)
                     success = True
                     break
-        elif task.receiver == TaskType.MODEL:
+        elif task.receiver == TT.MODEL:
             raise NotImplementedError("Model receiving task not implemented yet.")
         
         if not success:
