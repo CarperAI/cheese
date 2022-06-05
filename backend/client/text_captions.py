@@ -1,18 +1,21 @@
 from backend.client import Client
 from backend.tasks import Task, TaskType
+from backend.client.states import ClientState as CS
 
 class TextCaptionClient(Client):
     def __init__(self, id : int):
         super(Client, self).__init__(self.id)
 
-        self.waiting = False # waiting for user to send back captions
+        self.waiting = False # Waiting on frontend
+
         self.json_buffer = None
 
     def handle_task(self) -> bool:
+
+        # Can only handle a task if we have one
         assert self.task is not None
 
         if not self.waiting:
-            self.busy = True
             # Create JSON payload from the information in the task that will be presentable to the user
 
             data = {}
@@ -22,6 +25,7 @@ class TextCaptionClient(Client):
             data['captions'] = self.task.data.captions
 
             self.send_json(data)
+            self.waiting = True
         
             return False
         elif self.json_buffer is not None:
@@ -36,6 +40,12 @@ class TextCaptionClient(Client):
             self.task.receiver = TaskType.PIPELINE
             self.task.sender = TaskType.USER
 
+            # We have everything we need, no longer busy or waiting
+            # Ready to send finished task back to orchestrator
+            self.waiting = False
+            self.json_buffer = None
+            self.state = CS.IDLE
+
             return True
         else:
             return False
@@ -45,6 +55,7 @@ class TextCaptionClient(Client):
         pass
 
     def receive_json(self, data):
+        # TODO 
         self.json_buffer = data
         
         

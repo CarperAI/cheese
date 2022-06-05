@@ -22,7 +22,7 @@ class TextCaptionPipeline(Pipeline):
         # Source dataset
         self.dataset = load_from_disk(read_path) # should have column ['text']
         self.total_items = len(self.dataset["text"])
-        self.done = False
+        self.done = False # Have we finished creating new dataset?
 
         # Captioned dataset
         try:
@@ -50,6 +50,10 @@ class TextCaptionPipeline(Pipeline):
         Get dataset item and create task for orchestrator
         """
 
+        if self.done: return None
+        if self.current_index == self.total_items:
+            return None
+
         text = self.dataset["text"][self.current_index]
         batch_element = TextCaptionBatchElement(self.current_index, text, [], [])
         task = self.orchestrator_preprocess(batch_element)
@@ -75,10 +79,9 @@ class TextCaptionPipeline(Pipeline):
         self.save_dataset()
 
         self.finished_items += 1
-        done = self.finished_items == self.total_items
+        self.done = self.finished_items == self.total_items
      
     def receive_data_tasks(self, tasks : List[Task]):
-
         for task in tasks:
             self.receive_data_task(task)
     
