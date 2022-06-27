@@ -7,6 +7,8 @@ class CHEESEAPI:
         self.client_cls = client_cls
         self.model_cls = model_cls
 
+        self.client_ids = []
+
     def create_client(self, id : int, **kwargs):
         """
         Create a client instance with given id and any other optional parameters.
@@ -21,6 +23,7 @@ class CHEESEAPI:
 
         new_client = self.client_cls(id, **kwargs)
         self.orch.set_client(new_client)
+        self.client_ids += [id]
     
     def create_model(self, **kwargs):
         """

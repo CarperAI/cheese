@@ -44,6 +44,23 @@ class Orchestrator:
         """
         self.clients += [client]
 
+    def get_client(self, id : int) -> Client:
+        """
+        Get a client from their identifier
+
+        :param id: Identifier for the client
+        :type id: int
+
+        :return: Desired client
+        :rtype: Client
+        """
+
+        for c in self.clients:
+            if c.id == id:
+                return c
+
+        return None
+
     def backup_state(self):
         """
         Backup the current state of the orchestrator.
