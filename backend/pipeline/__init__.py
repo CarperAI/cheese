@@ -2,34 +2,35 @@ from abc import abstractmethod
 from typing import List
 
 from pyparsing import ParseExpression
-from backend.orchestrator  import Orchestrator
 from backend.data import BatchElement
 from backend.tasks import Task
 
+from pika.channel import Channel
+
 class Pipeline:
     """Abstract base class for a data pipeline. Processes data and communicates with orchestrator"""
+    def __init__(self):
+        self.msg_channel = None
+
+    def init_msg_channel(self, channel : Channel):
+        self.msg_channel = channel
+        self.msg_channel.basic_consume(
+            queue = 'pipeline',
+            auto_ack = True,
+            on_message_callback = self.dequeue_task
+        )
 
     @abstractmethod
-    def orchestrator_preprocess(self, batch_element: BatchElement) -> Task:
-        """Preprocesses batch element before it is passed to orchestrator"""
+    def queue_task(self) -> bool:
+        """
+        Creates a task and queue to client.
+        
+        :return: True if succesful, False if pipeline exhausted.
+        :rtype: bool
+        """
         pass
 
     @abstractmethod
-    def orchestrator_postprocess(self, batch_element: BatchElement) -> BatchElement:
-        """Postprocesses batch element after it is received from orchestrator"""
-        pass
-
-    @abstractmethod
-    def create_data_task(self) -> Task:
-        """Creates a task for the orchestrator. Should return None when data is exhausted."""
-        pass
-
-    @abstractmethod
-    def receive_data_task(self, task: Task):
-        """Receives a single task from the orchestrator"""
-        pass
-
-    @abstractmethod
-    def receive_data_tasks(self, tasks: List[Task]):
-        """Receives a list of tasks from the orchestrator"""
+    def dequeue_task(self):
+        """Check inbound queue for completed task."""
         pass

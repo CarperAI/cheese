@@ -1,12 +1,13 @@
 import pandas as pd
 from datasets import load_from_disk, Dataset
+import pickle
 
 from typing import List
 
 from backend.pipeline import Pipeline
 from backend.data import BatchElement
 from backend.data.text_captions import TextCaptionBatchElement
-from backend.tasks import Task, TaskType
+from backend.tasks import Task
 
 class TextCaptionPipeline(Pipeline):
     """
@@ -38,37 +39,39 @@ class TextCaptionPipeline(Pipeline):
 
         self.current_index = self.finished_items
 
-
-    def orchestrator_preprocess(self, orch_in: BatchElement) -> Task:
-        return Task(orch_in, TaskType.PIPELINE, TaskType.USER)
-    
-    def orchestrator_postprocess(self, orch_out: BatchElement) -> BatchElement:
-        return orch_out
-
-    def create_data_task(self):
+    def queue_task(self) -> bool:
         """
-        Get dataset item and create task for orchestrator
+        Creates a task and queue to text captioning client.
+        
+        :return: True if succesful, False if pipeline exhausted.
+        :rtype: bool
         """
 
-        if self.done: return None
-        if self.current_index == self.total_items:
-            return None
+        if self.done or self.current_index == self.total_items:
+            return False
 
         text = self.dataset["text"][self.current_index]
         batch_element = TextCaptionBatchElement(self.current_index, text, [], [])
-        task = self.orchestrator_preprocess(batch_element)
+
+        task = Task(batch_element)
+        tasks = pickle.dumps(task)
+        self.msg_channel.basic_publish(
+            exchange = '',
+            routing_key = 'clients',
+            body = tasks
+        )
 
         self.current_index += 1
-
-        return task
+        return True
     
-    def receive_data_task(self, task : Task):
+    def dequeue_task(self, ch, method, properties, body):
         """
-        Receive task from orchestrator
+        Attempt to receive task. Return True or False depending on success.
         """
-
-        orch_out = task.data
-        batch_element = self.orchestrator_postprocess(orch_out)
+        
+        tasks = body
+        task = pickle.load(tasks)
+        batch_element = task.data
 
         caption_index = [elem for elem in batch_element.caption_index]
         captions = [elem for elem in batch_element.captions]
