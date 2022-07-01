@@ -57,45 +57,21 @@ class CHEESEAPI:
 
     def step(self) -> bool:
         """
-        Gets tasks back from clients, sends finished tasks back to pipeline, handles queued tasks, receives new ones if available.
-        Returns True once pipeline is exhausted and task queues are all empty.
+        Creates a task from the data pipeline to send to clients, if any clients are free.
+
+        :return: True if task could be sent, false if clients were busy
         """
 
-        # TODO: Replace with new queue system
+        # All components receive tasks independently
+        # ClientManager sends out tasks based on users
+        # All we need to control is when pipeline sends tasks
 
-        # Order of priority:
-        # 1. Getting tasks back from BUSY clients or model
-        # 2. Sending finished tasks to pipeline
-        # 3. Handling tasks in queue
-        # 4. Receiving new tasks from pipeline
-
-        # Always prioritize getting tasks from clients done first
-        for client in self.orch.clients:
-            client.handle_task() 
-            
-        # Have orch receive tasks from any finished clients
-        self.orch.query_clients()
-
-        # Get completed tasks and send them to pipeline
-        self.pipeline.receive_data_tasks(self.orch.get_completed_tasks())
-        
-        # Handle tasks in queue
-        self.orch.handle_task()
-
-        # If orch has room for more tasks, take some from pipeline
-        exhausted_pipe = False
-        if self.orch.is_free():
-            # Get 
-            task = self.pipeline.create_data_task()
-            if task is not None: 
-                self.orch.receive_task(task)
-            else:
-                exhausted_pipe = True
-
-        if exhausted_pipe and self.orch.get_total_tasks() == 0:
+        free_clients = self.client_manager.get_idle_clients()
+        if free_clients > 0:
+            self.pipeline.queue_task()
             return True
-
-        return False
+        else:
+            return False
 
 
     
