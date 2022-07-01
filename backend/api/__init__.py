@@ -1,5 +1,7 @@
 from typing import ClassVar
 
+from backend.client import ClientManager
+
 import pika
 
 class CHEESEAPI:
@@ -12,13 +14,15 @@ class CHEESEAPI:
         # Distinction between client/active_client is for 
         # new tasks sent by pipeline vs tasks currently being worked on by client and model together 
         self.msg_channel.queue_declare(queue = "pipeline")
-        self.msg_channel.queue_declare(queue = "clients")
+        self.msg_channel.queue_declare(queue = "client")
         self.msg_channel.queue_declare(queue = "active")
         self.msg_channel.queue_declare(queue = "model")
         
         self.pipeline = pipeline_cls(**pipeline_kwargs)
-        self.client = client_cls(**client_kwargs) if client_cls is not None else None
         self.model = model_cls(**model_kwargs) if model_cls is not None else None
+
+        self.client_manager = ClientManager()
+        self.client_cls = client_cls
 
         self.pipeline.init_msg_channel(self.msg_channel)
         if self.client is not None: self.client.init_msg_channel(self.msg_channel)
@@ -27,7 +31,7 @@ class CHEESEAPI:
     def terminate(self):
         self.connection.close()
 
-    def create_client(self, id : int, **kwargs):
+    def create_client(self, id : int, **kwargs) -> str:
         """
         Create a client instance with given id and any other optional parameters.
         
@@ -35,11 +39,13 @@ class CHEESEAPI:
         :type id: int
 
         :param kwargs: Any other parameters to be passed to the client constructor.
+
+        :return: URL said client can use to access frontend.
         """
         if self.client_cls is None:
             raise Exception("No client class specified")
 
-        self.client.create_client(id, **kwargs)
+        return self.client_manager.add_client(id, self.client_cls, **kwargs)
     
     def create_model(self, **kwargs):
         """

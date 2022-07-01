@@ -57,7 +57,7 @@ class TextCaptionPipeline(Pipeline):
         tasks = pickle.dumps(task)
         self.msg_channel.basic_publish(
             exchange = '',
-            routing_key = 'clients',
+            routing_key = 'client',
             body = tasks
         )
 
@@ -66,7 +66,7 @@ class TextCaptionPipeline(Pipeline):
     
     def dequeue_task(self, ch, method, properties, body):
         """
-        Attempt to receive task. Return True or False depending on success.
+        Receive message corresponding to task.
         """
         
         tasks = body
