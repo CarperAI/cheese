@@ -1,13 +1,31 @@
 from typing import ClassVar
 
-class CHEESEAPI:
-    def __init__(self, pipeline_cls, orch_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, orch_kwargs = {}):
-        self.pipeline = pipeline_cls(**pipeline_kwargs)
-        self.orch = orch_cls(**orch_kwargs)
-        self.client_cls = client_cls
-        self.model_cls = model_cls
+import pika
 
-        self.client_ids = []
+class CHEESEAPI:
+    def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
+        # Initialize rabbit MQ server
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+        self.msg_channel = self.connection.channel()
+
+        # Create a queue for each receiver
+        # Distinction between client/active_client is for 
+        # new tasks sent by pipeline vs tasks currently being worked on by client and model together 
+        self.msg_channel.queue_declare(queue = "pipeline")
+        self.msg_channel.queue_declare(queue = "clients")
+        self.msg_channel.queue_declare(queue = "active")
+        self.msg_channel.queue_declare(queue = "model")
+        
+        self.pipeline = pipeline_cls(**pipeline_kwargs)
+        self.client = client_cls(**client_kwargs) if client_cls is not None else None
+        self.model = model_cls(**model_kwargs) if model_cls is not None else None
+
+        self.pipeline.init_msg_channel(self.msg_channel)
+        if self.client is not None: self.client.init_msg_channel(self.msg_channel)
+        if self.model is not None: self.model.init_msg_channel(self.msg_channel)
+
+    def terminate(self):
+        self.connection.close()
 
     def create_client(self, id : int, **kwargs):
         """
@@ -21,9 +39,7 @@ class CHEESEAPI:
         if self.client_cls is None:
             raise Exception("No client class specified")
 
-        new_client = self.client_cls(id, **kwargs)
-        self.orch.set_client(new_client)
-        self.client_ids += [id]
+        self.client.create_client(id, **kwargs)
     
     def create_model(self, **kwargs):
         """
@@ -38,6 +54,8 @@ class CHEESEAPI:
         Gets tasks back from clients, sends finished tasks back to pipeline, handles queued tasks, receives new ones if available.
         Returns True once pipeline is exhausted and task queues are all empty.
         """
+
+        # TODO: Replace with new queue system
 
         # Order of priority:
         # 1. Getting tasks back from BUSY clients or model
