@@ -2,17 +2,16 @@ from abc import abstractmethod
 
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
+import backend.utils as utils
 
 from pika.channel import Channel
 import pickle
 
 class ClientManager:
     def __init__(self):
-        # KVPS of <id, frontend object>
-        # todo: frontend object
-        #       -> Gonna assume it has a "get_task()" and "push_task()" method
+        # <id : int, Client>
         self.clients = {}
-        # <id, ClientState>
+        # <id : int, ClientState>
         self.client_states = {}
 
         self.msg_channel = None
@@ -26,6 +25,15 @@ class ClientManager:
         self.client_states[id] = CS.IDLE
 
         return url
+
+    def get_idle_clients(self) -> int:
+        """
+        Get count of how many clients are idle.
+        """
+        cnt = 0
+        for key in self.client_states:
+            if self.client_states[key] == CS.IDLE:
+                cnt += 1
     
     def init_msg_channel(self, channel : Channel):
         """
@@ -36,12 +44,12 @@ class ClientManager:
         self.msg_channel.basic_consume(
             queue = 'client',
             auto_ack = True,
-            on_message_callback = self.dequeue_task
+            on_message_callback = utils.messasge_callback(self.dequeue_task)
         )
         self.msg_channel.basic_consume(
             queue = 'active',
             auto_ack = True,
-            on_message_callback = self.dequeue_active_task
+            on_message_callback = utils.message_callback(self.dequeue_active_task)
         )
 
     def notify_completion(self, id : int):
@@ -70,31 +78,40 @@ class ClientManager:
                 routing_key = 'pipeline',
                 body = tasks
             )
+            self.msg_channel.basic_publish(
+                exchange = '',
+                routing_key = 'main',
+                body = utils.msg_constants.SENT
+            )
         else:
             raise Exception("Error: Frontend returned a task with invalid model id parameter.")
 
     
-    def dequeue_task(self, ch : Channel, method, properties, body : str):
+    def dequeue_task(self, tasks : str):
         """
-        Receive message for a new task.
+        Receive message for a new task. Assume this is from pipeline
         """
-        tasks = body
-        task : Task = pickle.load(task)
+        task : Task = pickle.load(tasks)
 
         for id in self.clients:
             if self.client_states[id] == CS.IDLE:
                 self.clients[id].push_task(task)
                 self.client_states[id] = CS.BUSY
+
+                self.msg_channel.basic_publish(
+                    exchange = '',
+                    routing_key = 'main',
+                    body = utils.msg_constants.RECEIVED
+                )
                 break
         
         raise Exception("Error: New task dequeued with no free clients to receive.")
     
-    def dequeue_active_task(self, ch : Channel, method, properties, body : str):
+    def dequeue_active_task(self, tasks : str):
         """
         Receive message for in progress (active) task.
         """
-        tasks = body
-        task : Task = pickle.load(task)
+        task : Task = pickle.load(tasks)
 
         id = task.client_id
 
@@ -107,8 +124,8 @@ class ClientManager:
 class Client:
     def __init__(self, id : int):
         self.id = id
-        self.task = None
-        self.url = None
+        self.task : Task = None
+        self.url : str = None
     
     def get_task(self) -> Task:
         res = self.task
