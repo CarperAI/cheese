@@ -20,7 +20,7 @@ class ClientManager:
         """
         Add a client to the ClientManager and return a url to the frontend.
         """
-        self.clients[id] = client_cls(id, **kwargs)
+        self.clients[id] = client_cls(self, id, **kwargs)
         url = self.clients[id].init_front()
         self.client_states[id] = CS.IDLE
 
@@ -122,20 +122,37 @@ class ClientManager:
         self.client_states[id] = CS.BUSY
 
 class Client:
-    def __init__(self, id : int):
+    def __init__(self, manager : ClientManager, id : int):
         self.id = id
         self.task : Task = None
         self.url : str = None
+
+        self.manager = manager
+
+    def notify(self):
+        """
+        Notify manager this client has finished task.
+        """
+        self.manager.notify_completion(self.id)
     
     def get_task(self) -> Task:
+        """
+        Return task and unset it. 
+        """
         res = self.task
         self.task = None
         return res
     
     @abstractmethod
     def push_task(self, task : Task):
+        """
+        Pass a new task to client for it to work on.
+        """
         pass
 
     @abstractmethod
     def init_front(self) -> str:
+        """
+        Initialize frontend for this particular client and return a URL to access it.
+        """
         pass
