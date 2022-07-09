@@ -36,7 +36,7 @@ class CHEESE:
         self.client_cls = client_cls
 
         self.pipeline.init_msg_channel(self.msg_channel)
-        if self.client is not None: self.client.init_msg_channel(self.msg_channel)
+        self.client_manager.init_msg_channel(self.msg_channel)
         if self.model is not None: self.model.init_msg_channel(self.msg_channel)
 
         self.clients = 0
