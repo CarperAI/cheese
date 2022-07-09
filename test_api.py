@@ -1,25 +1,19 @@
 from backend.pipeline.text_captions import TextCaptionPipeline
-from backend.orchestrator.text_captions import TextCaptionOrchestrator
-from backend.client.sim_client import SimClient
-from backend.api import CHEESEAPI
+from backend.client.text_captions import TextCaptionClient
+from backend.api import CHEESE
 
 from datasets import load_from_disk
 
 if __name__ == "__main__":
-    cheese = CHEESEAPI(
-        TextCaptionPipeline, TextCaptionOrchestrator, SimClient,
+    cheese = CHEESE(
+        TextCaptionPipeline, client_cls = TextCaptionClient, 
         pipeline_kwargs={"read_path": "dataset", "write_path": "data_res", "force_new": True}
     )
 
-    # Add some simulated clients
-    for i in range(2):
-        cheese.create_client(i)
+    url = cheese.create_client(1)
+    print(url)
 
-    while not cheese.step():
-        print(cheese.orch.get_total_tasks())
-        pass
-
-    cheese.pipeline.save_dataset()
+    cheese.start()
 
     # Test to make sure this showed up in the final dataset
     res_dataset = load_from_disk("data_res")
