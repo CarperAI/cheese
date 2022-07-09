@@ -4,6 +4,7 @@ from typing import List
 from pyparsing import ParseExpression
 from backend.data import BatchElement
 from backend.tasks import Task
+import backend.utils as utils
 
 from pika.channel import Channel
 
@@ -17,7 +18,7 @@ class Pipeline:
         self.msg_channel.basic_consume(
             queue = 'pipeline',
             auto_ack = True,
-            on_message_callback = self.dequeue_task
+            on_message_callback = utils.message_callback(self.dequeue_task)
         )
 
     @abstractmethod
@@ -31,6 +32,6 @@ class Pipeline:
         pass
 
     @abstractmethod
-    def dequeue_task(self):
+    def dequeue_task(self, tasks : str):
         """Check inbound queue for completed task."""
         pass
