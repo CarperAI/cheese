@@ -64,12 +64,14 @@ class TextCaptionPipeline(Pipeline):
         self.current_index += 1
         return True
     
-    def dequeue_task(self, ch, method, properties, body):
+    def dequeue_task(self, tasks : str):
         """
         Receive message corresponding to task.
+
+        :param tasks: Task serialized as string.
+        :type tasks: str
         """
         
-        tasks = body
         task = pickle.load(tasks)
         batch_element = task.data
 
