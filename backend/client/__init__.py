@@ -2,11 +2,11 @@ from abc import abstractmethod
 
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
-import backend.utils as utils
 import backend.utils.msg_constants as msg_constants
 
-from pika.channel import Channel
 import pickle
+
+from b_rabbit import BRabbit
 
 class ClientManager:
     def __init__(self):
@@ -15,7 +15,9 @@ class ClientManager:
         # <id : int, ClientState>
         self.client_states = {}
 
-        self.msg_channel = None
+        self.publisher = None # to pipeline or model
+        self.subscriber = None # get tasks (from pipeline)
+        self.subscriber_active = None # get active tasks
     
     def add_client(self, id : int, client_cls, **kwargs) -> str:
         """
@@ -44,22 +46,43 @@ class ClientManager:
             if self.client_states[key] == CS.IDLE:
                 cnt += 1
     
-    def init_msg_channel(self, channel : Channel):
+    def init_connection(self, connection : BRabbit):
         """
         Initialize message channel and consumption callbacks.
         """
-        self.msg_channel = channel
 
-        self.msg_channel.basic_consume(
-            queue = 'client',
-            auto_ack = True,
-            on_message_callback = utils.message_callback(self.dequeue_task)
+        self.publisher = connection.EventPublisher(
+            b_rabbit = connection,
+            publisher_name = 'client'
         )
-        self.msg_channel.basic_consume(
-            queue = 'active',
-            auto_ack = True,
-            on_message_callback = utils.message_callback(self.dequeue_active_task)
+
+        self.subscriber = connection.EventSubscriber(
+            b_rabbit = connection,
+            routing_key = 'client',
+            publisher_name = 'pipeline',
+            event_listener = self.dequeue_task
         )
+
+        self.subscriber_active = connection.EventSubscriber(
+            b_rabbit = connection,
+            routing_key = 'active',
+            publisher_name = 'model',
+            event_listener = self.dequeue_active_task
+        )
+
+        self.subscriber.subscribe_on_thread()
+        self.subscriber_active.subscribe_on_thread()
+
+        #self.msg_channel.basic_consume(
+        #    queue = 'client',
+        #    auto_ack = True,
+        #    on_message_callback = rabbit_utils.message_callback(self.dequeue_task)
+        #)
+        #self.msg_channel.basic_consume(
+        #    queue = 'active',
+        #    auto_ack = True,
+        #    on_message_callback = rabbit_utils.message_callback(self.dequeue_active_task)
+        #)
 
     def notify_completion(self, id : int):
         """
@@ -77,23 +100,39 @@ class ClientManager:
 
         if task.model_id == -2:
             self.client_states[id] = CS.WAITING
-            self.msg_channel.basic_publish(
-                exchange = '',
+
+            self.publisher.publish(
                 routing_key = 'model',
-                body = tasks
+                payload = tasks
             )
+            #self.msg_channel.basic_publish(
+            #    exchange = '',
+            #    routing_key = 'model',
+            #    body = tasks
+            #)
         elif task.model_id == -1:
             self.client_states[id] = CS.IDLE
-            self.msg_channel.basic_publish(
-                exchange = '',
+
+            self.publisher.publish(
                 routing_key = 'pipeline',
-                body = tasks
+                payload = tasks
             )
-            self.msg_channel.basic_publish(
-                exchange = '',
+
+            #self.msg_channel.basic_publish(
+            #    exchange = '',
+            #    routing_key = 'pipeline',
+            #    body = tasks
+            #)
+            
+            self.publisher.publish(
                 routing_key = 'main',
-                body = utils.msg_constants.SENT
+                payload = msg_constants.SENT
             )
+            #self.msg_channel.basic_publish(
+            #    exchange = '',
+            #    routing_key = 'main',
+            #    body = rabbit_utils.msg_constants.SENT
+            #)
         else:
             raise Exception("Error: Frontend returned a task with invalid model id parameter.")
 
@@ -110,11 +149,15 @@ class ClientManager:
                 self.clients[id].push_task(task)
                 self.client_states[id] = CS.BUSY
 
-                self.msg_channel.basic_publish(
-                    exchange = '',
+                self.publisher.publish(
                     routing_key = 'main',
-                    body = utils.msg_constants.RECEIVED
+                    payload = msg_constants.RECEIVED
                 )
+                #self.msg_channel.basic_publish(
+                #    exchange = '',
+                #    routing_key = 'main',
+                #    body = rabbit_utils.msg_constants.RECEIVED
+                #)
                 return
         
         raise Exception("Error: New task dequeued with no free clients to receive.")

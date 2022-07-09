@@ -55,11 +55,17 @@ class TextCaptionPipeline(Pipeline):
 
         task = Task(batch_element)
         tasks = pickle.dumps(task)
-        self.msg_channel.basic_publish(
-            exchange = '',
+
+        self.publisher.publish(
             routing_key = 'client',
-            body = tasks
+            payload = tasks
         )
+
+        #self.msg_channel.basic_publish(
+        #    exchange = '',
+        #    routing_key = 'client',
+        #    body = tasks
+        #)
 
         self.current_index += 1
         return True
@@ -85,10 +91,6 @@ class TextCaptionPipeline(Pipeline):
 
         self.finished_items += 1
         self.done = self.finished_items == self.total_items
-     
-    def receive_data_tasks(self, tasks : List[Task]):
-        for task in tasks:
-            self.receive_data_task(task)
     
     def save_dataset(self):
         self.res_dataset.save_to_disk(self.write_path)

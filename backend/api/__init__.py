@@ -1,33 +1,42 @@
 from typing import ClassVar
 
 from backend.client import ClientManager
-import backend.utils as utils
+import backend.utils.msg_constants as msg_constants
 
-import pika
+from b_rabbit import BRabbit
 
 # Master object for CHEESE
 class CHEESE:
     def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
         # Initialize rabbit MQ server
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-        self.msg_channel = self.connection.channel()
+        self.connection = BRabbit(host='localhost', port=5672)
 
         # Create a queue for each receiver
         # Distinction between client/active_client is for 
         # new tasks sent by pipeline vs tasks currently being worked on by client and model together 
-        self.msg_channel.queue_declare(queue = "pipeline", exclusive = True)
-        self.msg_channel.queue_declare(queue = "client", exclusive = True)
-        self.msg_channel.queue_declare(queue = "active", exclusive = True)
-        self.msg_channel.queue_declare(queue = "model", exclusive = True)
+        #self.msg_channel.queue_declare(queue = "pipeline", exclusive = True)
+        #self.msg_channel.queue_declare(queue = "client", exclusive = True)
+        #self.msg_channel.queue_declare(queue = "active", exclusive = True)
+        #self.msg_channel.queue_declare(queue = "model", exclusive = True)
 
         # Queue for client manager to message master when it is ready for more data
-        self.msg_channel.queue_declare(queue = "main", exclusive = True)
-        self.msg_channel.basic_consume(
-            queue = 'main',
-            auto_ack = True,
-            on_message_callback = utils.message_callback(self.client_ping)
+        #self.msg_channel.queue_declare(queue = "main", exclusive = True)
+        #self.msg_channel.basic_consume(
+        #    queue = 'main',
+        #    auto_ack = True,
+        #    on_message_callback = rabbit_utils.message_callback(self.client_ping)
+        #)
+
+        # Channel for client to notify of task completion
+        self.subscriber = self.connection.EventSubscriber(
+            b_rabbit = self.connection,
+            routing_key = 'main',
+            publisher_name = 'client',
+            event_listener = self.client_ping
         )
 
+        self.subscriber.subscribe_on_thread()
+        
         # API components initialized
         self.pipeline = pipeline_cls(**pipeline_kwargs)
         self.model = model_cls(**model_kwargs) if model_cls is not None else None
@@ -35,8 +44,8 @@ class CHEESE:
         self.client_manager = ClientManager()
         self.client_cls = client_cls
 
-        self.pipeline.init_msg_channel(self.msg_channel)
-        self.client_manager.init_msg_channel(self.msg_channel)
+        self.pipeline.init_connection(self.connection)
+        self.client_manager.init_connection(self.connection)
         if self.model is not None: self.model.init_msg_channel(self.msg_channel)
 
         self.clients = 0
@@ -47,25 +56,16 @@ class CHEESE:
     def terminate(self):
         self.connection.close()
     
-    def start(self):
-        """
-        Begin the loop for collecting data.
-        """
-        if len(self.client_manager.clients) < 1:
-            print("WARNING: No clients were added")
-
-        self.msg_channel.start_consuming()
-    
     def client_ping(self, msg):
         """
         Method for ClientManager to ping the API when it needs more tasks or has taken a task
         """
 
-        if msg == utils.msg_constants.SENT:
+        if msg == msg_constants.SENT:
             # Client sent task to pipeline, needs a new one
             self.busy_clients -= 1
             self.draw()
-        if msg == utils.msg_constants.RECEIVED:
+        if msg == msg_constants.RECEIVED:
             self.busy_clients += 1
 
     def create_client(self, id : int, **kwargs) -> str:
