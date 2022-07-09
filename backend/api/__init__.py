@@ -6,7 +6,7 @@ import backend.utils as utils
 import pika
 
 # Master object for CHEESE
-class CHEESEAPI:
+class CHEESE:
     def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
         # Initialize rabbit MQ server
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -42,9 +42,11 @@ class CHEESEAPI:
         self.clients = 0
         self.busy_clients = 0
 
+        self.finished = False # For when pipeline is exhausted
 
     def __del__(self):
-        self.connection.close()
+        if not self.finished:
+            self.connection.close()
     
     def start(self):
         """
@@ -101,8 +103,13 @@ class CHEESEAPI:
 
         if self.busy_clients >= self.clients:
             return
-        else:
-            self.pipeline.queue_task()
+
+        exhausted = self.pipeline.queue_task()
+
+        if exhausted and self.pipeline.done:
+            #  finished, so we can stop the pipeline
+            self.connection.close()
+            self.finished = True
 
 
     
