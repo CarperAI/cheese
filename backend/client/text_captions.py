@@ -7,7 +7,7 @@ import gradio as gr
 
 class TextCaptionClient(Client):
     def __init__(self, id : int):
-        super(Client, self).__init__(id)
+        super().__init__(id)
 
         self.front = None
 
@@ -17,75 +17,93 @@ class TextCaptionClient(Client):
         except:
             raise Exception("Error: Pushed task to frontend before it was initialized")
         
-        data : TextCaptionBatchElement  = task.data
-        self.front.data = {
-            "text" : data.text,
-            "captions" : data.captions,
-            "caption_inds" : data.caption_index
-        }
-
+        self.task = task
+        data : TextCaptionBatchElement = task.data
+        self.front.update(data)
 
     def init_front(self) -> str:
-        default_data = {
-            "text" : "This is my amazing story about a fox." +  \
-                    "The fox was brown. It was also renowned for being quick." + \
-                    "It proved its talents by jumping over a dog. It just so happened that this dog was lazy. This cemented it as being the quick brown fox that jumped over the lazy dog.",
-            "captions" : [],
-            "caption_inds" : [],
-        }
-        self.front = TextCaptionFront(default_data)       
+        self.front = TextCaptionFront()
+        self.front.client = self
+
+        return self.front.url
+
+    def front_ping(self):
+        """
+        For frontend to ping client that it is done with task.
+        """
+        # First update task data
+        self.task.data = self.front.data
+        self.notify() 
         
 class TextCaptionFront:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        # Set default data and create the UI
         self.demo = gr.Interface(
             fn = self.response,
             inputs = ["text"],
-            outputs = [gr.Textbox(placeholder = ph[0]),
-                       gr.Textbox(placeholder = ph[1])
-                    ],
+            outputs = [gr.Textbox(placeholder = "")],
         )
+        _, local_url, url = self.demo.launch(
+            share = True, quiet = True,
+            prevent_thread_lock = True,
+            )
+
+        self.local = local_url
+        self.url = url
+
+        self.data : TextCaptionBatchElement = None
+        self.showing_data = False # is data visible?
+        # A reference to the owner client object
+        self.client = None
+
+    def update(self, data):
+        self.data = data
 
     def generate_str(self):
         # generate a string from data using caption indexes
-        res = self.data["text"]
+        res = self.data.text
 
-        i = len(self.data["captions"]) - 1
-        for inds in reversed(self.data["caption_inds"]):
+        i = len(self.data.captions) - 1
+        for inds in reversed(self.data.caption_index):
             res = res[:inds[0]] + f"[{i}][" + res[inds[0]:inds[1]] + "]" + res[inds[1]:]
             i -= 1
 
         res_captions = ""
-        for i, caption in enumerate(self.data["captions"]):
+        for i, caption in enumerate(self.data.captions):
             res_captions += f"{i}: {caption}\n"
 
         return res, res_captions
 
     def response(self, inp):
-        # Parse input line by line
-        lines = inp.split("\n")
-        # First two integers are character positions for caption
-        indices = [[int(x) for x in line.split(" ")[:2]] \
-                    for line in lines]
-        
-        # rest is caption
-        captions = [" ".join(line.split(" ")[2:]) for line in lines]
+        """
+        What to display to user after they've pressed submit button.
+        """
+        if self.showing_data:
+            # If they were seeing data and pressed button,
+            # we assume they made captions and are now submitting
 
-        self.data["captions"] += captions
-        self.data["caption_inds"] += indices
+            # Parse input line by line
+            lines = inp.split("\n")
+            # First two integers are character positions for caption
+            indices = [[int(x) for x in line.split(" ")[:2]] \
+                        for line in lines]
+            
+            # rest is caption
+            captions = [" ".join(line.split(" ")[2:]) for line in lines]
 
-        return self.generate_str()
+            self.data.captions += captions
+            self.data.caption_index += indices
 
-
-    def get_demo(self):
-        ph = self.generate_str()
-        demo = gr.Interface(
-            fn = self.response,
-            inputs = ["text"],
-            outputs = [gr.Textbox(placeholder = ph[0]),
-                       gr.Textbox(placeholder = ph[1])
-                    ],
-        )
-        return demo
+            self.showing_data = False
+            self.client.front_ping()
+            self.data = None
+        else:
+            # Otherwise if they pressed submit while seeing nothing,
+            # they need to be shown their new task
+            # If its ready, show it
+            if self.data is not None:
+                self.showing_data = True
+                return self.data.text
+        return ""
 
 

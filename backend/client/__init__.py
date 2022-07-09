@@ -3,6 +3,7 @@ from abc import abstractmethod
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
 import backend.utils as utils
+import backend.utils.msg_constants as msg_constants
 
 from pika.channel import Channel
 import pickle
@@ -20,7 +21,7 @@ class ClientManager:
         """
         Add a client to the ClientManager and return a url to the frontend.
         """
-        self.clients[id] = client_cls(self, id, **kwargs)
+        self.clients[id] = client_cls(id, **kwargs)
         self.clients[id].set_manager(self)
         url = self.clients[id].init_front()
         self.client_states[id] = CS.IDLE
@@ -101,7 +102,8 @@ class ClientManager:
         """
         Receive message for a new task. Assume this is from pipeline
         """
-        task : Task = pickle.load(tasks)
+
+        task : Task = pickle.loads(tasks)
 
         for id in self.clients:
             if self.client_states[id] == CS.IDLE:
@@ -113,7 +115,7 @@ class ClientManager:
                     routing_key = 'main',
                     body = utils.msg_constants.RECEIVED
                 )
-                break
+                return
         
         raise Exception("Error: New task dequeued with no free clients to receive.")
     
