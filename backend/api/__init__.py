@@ -44,9 +44,8 @@ class CHEESE:
 
         self.finished = False # For when pipeline is exhausted
 
-    def __del__(self):
-        if not self.finished:
-            self.connection.close()
+    def terminate(self):
+        self.connection.close()
     
     def start(self):
         """
@@ -107,9 +106,8 @@ class CHEESE:
         exhausted = self.pipeline.queue_task()
 
         if exhausted and self.pipeline.done:
-            #  finished, so we can stop the pipeline
-            self.connection.close()
-            self.finished = True
+            #  finished, so we can stop
+            self.terminate()
 
 
     
