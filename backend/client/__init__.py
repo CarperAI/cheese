@@ -21,10 +21,18 @@ class ClientManager:
         Add a client to the ClientManager and return a url to the frontend.
         """
         self.clients[id] = client_cls(self, id, **kwargs)
+        self.clients[id].set_manager(self)
         url = self.clients[id].init_front()
         self.client_states[id] = CS.IDLE
 
         return url
+    
+    def remove_client(self, id : int):
+        """
+        Remove a client from the ClientManager. Note: this drops any task that client is working on.
+        """
+        del self.clients[id]
+        del self.client_states[id]
 
     def get_idle_clients(self) -> int:
         """
@@ -44,7 +52,7 @@ class ClientManager:
         self.msg_channel.basic_consume(
             queue = 'client',
             auto_ack = True,
-            on_message_callback = utils.messasge_callback(self.dequeue_task)
+            on_message_callback = utils.message_callback(self.dequeue_task)
         )
         self.msg_channel.basic_consume(
             queue = 'active',
@@ -53,7 +61,9 @@ class ClientManager:
         )
 
     def notify_completion(self, id : int):
-        # For frontend client to inform ClientManager of task completion
+        """
+        Notify the ClientManager that a client has completed a task.
+        """
         self.queue_task(id)
 
     def queue_task(self, id : int):
@@ -122,17 +132,25 @@ class ClientManager:
         self.client_states[id] = CS.BUSY
 
 class Client:
-    def __init__(self, manager : ClientManager, id : int):
+    def __init__(self, id : int):
         self.id = id
         self.task : Task = None
         self.url : str = None
 
+        self.manager = None
+    
+    def set_manager(self, manager : ClientManager):
         self.manager = manager
 
     def notify(self):
         """
         Notify manager this client has finished task.
         """
+        try:
+            assert self.manager is not None
+        except:
+            raise Exception("Error: Trying to notify ClientManager when it was never set")
+
         self.manager.notify_completion(self.id)
     
     def get_task(self) -> Task:

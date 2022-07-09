@@ -7,7 +7,7 @@ import gradio as gr
 
 class TextCaptionClient(Client):
     def __init__(self, id : int):
-        super(Client, self).__init__(self.id)
+        super(Client, self).__init__(id)
 
         self.front = None
 
