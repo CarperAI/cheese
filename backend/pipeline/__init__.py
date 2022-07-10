@@ -2,34 +2,46 @@ from abc import abstractmethod
 from typing import List
 
 from pyparsing import ParseExpression
-from backend.orchestrator  import Orchestrator
 from backend.data import BatchElement
 from backend.tasks import Task
 
+from b_rabbit import BRabbit
+
 class Pipeline:
     """Abstract base class for a data pipeline. Processes data and communicates with orchestrator"""
+    def __init__(self):
+        self.publisher = None
+        self.subscriber = None
+
+    def init_connection(self, connection : BRabbit):
+        """
+        Initialize RabbitMQ connection
+        """
+        self.publisher = connection.EventPublisher(
+            b_rabbit = connection,
+            publisher_name = 'pipeline'
+        )
+
+        self.subscriber = connection.EventSubscriber(
+            b_rabbit = connection,
+            routing_key = 'pipeline',
+            publisher_name = 'client',
+            event_listener = self.dequeue_task
+        )
+
+        self.subscriber.subscribe_on_thread()
 
     @abstractmethod
-    def orchestrator_preprocess(self, batch_element: BatchElement) -> Task:
-        """Preprocesses batch element before it is passed to orchestrator"""
+    def queue_task(self) -> bool:
+        """
+        Creates a task and queue to client.
+        
+        :return: True if succesful, False if pipeline exhausted.
+        :rtype: bool
+        """
         pass
 
     @abstractmethod
-    def orchestrator_postprocess(self, batch_element: BatchElement) -> BatchElement:
-        """Postprocesses batch element after it is received from orchestrator"""
-        pass
-
-    @abstractmethod
-    def create_data_task(self) -> Task:
-        """Creates a task for the orchestrator. Should return None when data is exhausted."""
-        pass
-
-    @abstractmethod
-    def receive_data_task(self, task: Task):
-        """Receives a single task from the orchestrator"""
-        pass
-
-    @abstractmethod
-    def receive_data_tasks(self, tasks: List[Task]):
-        """Receives a list of tasks from the orchestrator"""
+    def dequeue_task(self, tasks : str):
+        """Check inbound queue for completed task."""
         pass

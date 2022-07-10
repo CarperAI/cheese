@@ -1,64 +1,53 @@
-from backend.client import Client
-from backend.tasks import Task, TaskType
+from backend.client import Client, ClientFront
+from backend.tasks import Task
 from backend.client.states import ClientState as CS
+from backend.data.text_captions import TextCaptionBatchElement
+
+import gradio as gr
 
 class TextCaptionClient(Client):
-    def __init__(self, id : int):
-        super(Client, self).__init__(self.id)
-
-        self.waiting = False # Waiting on frontend
-
-        self.json_buffer = None
-
-    def handle_task(self) -> bool:
-
-        # Can only handle a task if we have one
-        assert self.task is not None
-
-        if not self.waiting:
-            # Create JSON payload from the information in the task that will be presentable to the user
-
-            data = {}
-
-            data['story'] = self.task.data.text
-            data['caption_index'] = self.task.data.caption_index
-            data['captions'] = self.task.data.captions
-
-            self.send_json(data)
-            self.waiting = True
+    def init_front(self) -> str:
+        return super().init_front(TextCaptionFront)
         
-            return False
-        elif self.json_buffer is not None:
-            # user is done and wants to send caption back
-            data = self.json_buffer
-            self.json_buffer = None
+class TextCaptionFront(ClientFront):
+    def __init__(self):
+        super().__init__()
+        # Set default data and create the UI
+        self.demo = gr.Interface(
+            fn = self.response,
+            inputs = ["text"],
+            outputs = [gr.Textbox(placeholder = "")],
+        )
 
-            self.task.data.story = data['story']
-            self.task.data.caption_index = data['caption_index']
-            self.task.data.captions = data['captions']
+    def response(self, inp) -> str:
+        """
+        Take input from user and gives a response for them to see. If they are being shown a task,
+        takes their input as being a caption. Otherwise, ignores the input but refreshes and tries to get a new task.
+        """
+        if self.showing_data:
+            # If they were seeing data and pressed button,
+            # we assume they made captions and are now submitting
 
-            self.task.receiver = TaskType.PIPELINE
-            self.task.sender = TaskType.USER
+            # Parse input line by line
+            lines = inp.split("\n")
+            # First two integers are character positions for caption
+            indices = [[int(x) for x in line.split(" ")[:2]] \
+                        for line in lines]
+            
+            # rest is caption
+            captions = [" ".join(line.split(" ")[2:]) for line in lines]
 
-            # We have everything we need, no longer busy or waiting
-            # Ready to send finished task back to orchestrator
-            self.waiting = False
-            self.json_buffer = None
-            self.state = CS.IDLE
+            self.data.captions += captions
+            self.data.caption_index += indices
 
-            return True
+            self.complete_task()
         else:
-            return False
+            # Otherwise if they pressed submit while seeing nothing,
+            # they need to be shown their new task
+            # If its ready, show it
 
-    def send_json(self, data):
-        # TODO
-        pass
+            if self.refresh():
+                return self.data.text
+        return ""
 
-    def receive_json(self, data):
-        # TODO 
-        self.json_buffer = data
-        
-        
-
-    
 

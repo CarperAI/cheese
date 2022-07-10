@@ -1,15 +1,59 @@
 from typing import ClassVar
 
-class CHEESEAPI:
-    def __init__(self, pipeline_cls, orch_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, orch_kwargs = {}):
+from backend.client import ClientManager
+import backend.utils.msg_constants as msg_constants
+from backend.utils.rabbit_utils import rabbitmq_callback
+
+from b_rabbit import BRabbit
+
+# Master object for CHEESE
+class CHEESE:
+    def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
+        # Initialize rabbit MQ server
+        self.connection = BRabbit(host='localhost', port=5672)
+
+        # Channel for client to notify of task completion
+        self.subscriber = self.connection.EventSubscriber(
+            b_rabbit = self.connection,
+            routing_key = 'main',
+            publisher_name = 'client',
+            event_listener = self.client_ping
+        )
+
+        self.subscriber.subscribe_on_thread()
+        
+        # API components initialized
         self.pipeline = pipeline_cls(**pipeline_kwargs)
-        self.orch = orch_cls(**orch_kwargs)
+        self.model = model_cls(**model_kwargs) if model_cls is not None else None
+
+        self.client_manager = ClientManager()
         self.client_cls = client_cls
-        self.model_cls = model_cls
 
-        self.client_ids = []
+        self.pipeline.init_connection(self.connection)
+        self.client_manager.init_connection(self.connection)
+        if self.model is not None: self.model.init_msg_channel(self.msg_channel)
 
-    def create_client(self, id : int, **kwargs):
+        self.clients = 0
+        self.busy_clients = 0
+
+        self.finished = False # For when pipeline is exhausted
+    
+    @rabbitmq_callback
+    def client_ping(self, msg):
+        """
+        Method for ClientManager to ping the API when it needs more tasks or has taken a task
+        """
+        msg = msg.decode('utf-8')
+        if msg == msg_constants.SENT:
+            # Client sent task to pipeline, needs a new one
+            self.busy_clients -= 1
+            self.draw()
+        elif msg == msg_constants.RECEIVED:
+            self.busy_clients += 1
+        else:
+            raise Exception("Error: Client pinged master with unknown message")
+
+    def create_client(self, id : int, **kwargs) -> str:
         """
         Create a client instance with given id and any other optional parameters.
         
@@ -17,13 +61,16 @@ class CHEESEAPI:
         :type id: int
 
         :param kwargs: Any other parameters to be passed to the client constructor.
+
+        :return: URL said client can use to access frontend.
         """
         if self.client_cls is None:
             raise Exception("No client class specified")
 
-        new_client = self.client_cls(id, **kwargs)
-        self.orch.set_client(new_client)
-        self.client_ids += [id]
+        res = self.client_manager.add_client(id, self.client_cls, **kwargs)
+        self.clients += 1
+        self.draw() # pre-emptively draw a task for the client to pick up
+        return res
     
     def create_model(self, **kwargs):
         """
@@ -33,45 +80,19 @@ class CHEESEAPI:
         """
         raise NotImplementedError
 
-    def step(self) -> bool:
+    def draw(self):
         """
-        Gets tasks back from clients, sends finished tasks back to pipeline, handles queued tasks, receives new ones if available.
-        Returns True once pipeline is exhausted and task queues are all empty.
+        Draws a sample from data pipeline and creates a task to send to clients. Does nothing if no free clients.
         """
 
-        # Order of priority:
-        # 1. Getting tasks back from BUSY clients or model
-        # 2. Sending finished tasks to pipeline
-        # 3. Handling tasks in queue
-        # 4. Receiving new tasks from pipeline
+        if self.busy_clients >= self.clients:
+            return
 
-        # Always prioritize getting tasks from clients done first
-        for client in self.orch.clients:
-            client.handle_task() 
-            
-        # Have orch receive tasks from any finished clients
-        self.orch.query_clients()
+        exhausted = not self.pipeline.queue_task()
 
-        # Get completed tasks and send them to pipeline
-        self.pipeline.receive_data_tasks(self.orch.get_completed_tasks())
-        
-        # Handle tasks in queue
-        self.orch.handle_task()
-
-        # If orch has room for more tasks, take some from pipeline
-        exhausted_pipe = False
-        if self.orch.is_free():
-            # Get 
-            task = self.pipeline.create_data_task()
-            if task is not None: 
-                self.orch.receive_task(task)
-            else:
-                exhausted_pipe = True
-
-        if exhausted_pipe and self.orch.get_total_tasks() == 0:
-            return True
-
-        return False
+        if exhausted and self.pipeline.done:
+            #  finished, so we can stop
+            self.finished = True
 
 
     

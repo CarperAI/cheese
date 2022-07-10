@@ -1,12 +1,14 @@
 import pandas as pd
 from datasets import load_from_disk, Dataset
+import pickle
 
 from typing import List
 
 from backend.pipeline import Pipeline
 from backend.data import BatchElement
 from backend.data.text_captions import TextCaptionBatchElement
-from backend.tasks import Task, TaskType
+from backend.tasks import Task
+from backend.utils.rabbit_utils import rabbitmq_callback
 
 class TextCaptionPipeline(Pipeline):
     """
@@ -39,36 +41,42 @@ class TextCaptionPipeline(Pipeline):
         self.current_index = self.finished_items
 
 
-    def orchestrator_preprocess(self, orch_in: BatchElement) -> Task:
-        return Task(orch_in, TaskType.PIPELINE, TaskType.USER)
-    
-    def orchestrator_postprocess(self, orch_out: BatchElement) -> BatchElement:
-        return orch_out
-
-    def create_data_task(self):
+    def queue_task(self) -> bool:
         """
-        Get dataset item and create task for orchestrator
+        Creates a task and queue to text captioning client.
+        
+        :return: True if succesful, False if pipeline exhausted.
+        :rtype: bool
         """
 
-        if self.done: return None
-        if self.current_index == self.total_items:
-            return None
+        if self.done or self.current_index >= self.total_items:
+            return False
 
         text = self.dataset["text"][self.current_index]
         batch_element = TextCaptionBatchElement(self.current_index, text, [], [])
-        task = self.orchestrator_preprocess(batch_element)
+
+        task = Task(batch_element)
+        tasks = pickle.dumps(task)
+
+        self.publisher.publish(
+            routing_key = 'client',
+            payload = tasks
+        )
 
         self.current_index += 1
-
-        return task
+        return True
     
-    def receive_data_task(self, task : Task):
+    @rabbitmq_callback
+    def dequeue_task(self, tasks : str):
         """
-        Receive task from orchestrator
-        """
+        Receive message corresponding to task.
 
-        orch_out = task.data
-        batch_element = self.orchestrator_postprocess(orch_out)
+        :param tasks: Task serialized as string.
+        :type tasks: str
+        """
+        
+        task = pickle.loads(tasks)
+        batch_element = task.data
 
         caption_index = [elem for elem in batch_element.caption_index]
         captions = [elem for elem in batch_element.captions]
@@ -80,10 +88,6 @@ class TextCaptionPipeline(Pipeline):
 
         self.finished_items += 1
         self.done = self.finished_items == self.total_items
-     
-    def receive_data_tasks(self, tasks : List[Task]):
-        for task in tasks:
-            self.receive_data_task(task)
     
     def save_dataset(self):
         self.res_dataset.save_to_disk(self.write_path)
