@@ -8,6 +8,7 @@ from backend.pipeline import Pipeline
 from backend.data import BatchElement
 from backend.data.text_captions import TextCaptionBatchElement
 from backend.tasks import Task
+from backend.utils.rabbit_utils import rabbitmq_callback
 
 class TextCaptionPipeline(Pipeline):
     """
@@ -39,6 +40,7 @@ class TextCaptionPipeline(Pipeline):
 
         self.current_index = self.finished_items
 
+
     def queue_task(self) -> bool:
         """
         Creates a task and queue to text captioning client.
@@ -61,15 +63,10 @@ class TextCaptionPipeline(Pipeline):
             payload = tasks
         )
 
-        #self.msg_channel.basic_publish(
-        #    exchange = '',
-        #    routing_key = 'client',
-        #    body = tasks
-        #)
-
         self.current_index += 1
         return True
     
+    @rabbitmq_callback
     def dequeue_task(self, tasks : str):
         """
         Receive message corresponding to task.
@@ -78,7 +75,7 @@ class TextCaptionPipeline(Pipeline):
         :type tasks: str
         """
         
-        task = pickle.load(tasks)
+        task = pickle.loads(tasks)
         batch_element = task.data
 
         caption_index = [elem for elem in batch_element.caption_index]

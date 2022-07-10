@@ -2,6 +2,7 @@ from typing import ClassVar
 
 from backend.client import ClientManager
 import backend.utils.msg_constants as msg_constants
+from backend.utils.rabbit_utils import rabbitmq_callback
 
 from b_rabbit import BRabbit
 
@@ -10,22 +11,6 @@ class CHEESE:
     def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
         # Initialize rabbit MQ server
         self.connection = BRabbit(host='localhost', port=5672)
-
-        # Create a queue for each receiver
-        # Distinction between client/active_client is for 
-        # new tasks sent by pipeline vs tasks currently being worked on by client and model together 
-        #self.msg_channel.queue_declare(queue = "pipeline", exclusive = True)
-        #self.msg_channel.queue_declare(queue = "client", exclusive = True)
-        #self.msg_channel.queue_declare(queue = "active", exclusive = True)
-        #self.msg_channel.queue_declare(queue = "model", exclusive = True)
-
-        # Queue for client manager to message master when it is ready for more data
-        #self.msg_channel.queue_declare(queue = "main", exclusive = True)
-        #self.msg_channel.basic_consume(
-        #    queue = 'main',
-        #    auto_ack = True,
-        #    on_message_callback = rabbit_utils.message_callback(self.client_ping)
-        #)
 
         # Channel for client to notify of task completion
         self.subscriber = self.connection.EventSubscriber(
@@ -56,17 +41,20 @@ class CHEESE:
     def terminate(self):
         self.connection.close()
     
+    @rabbitmq_callback
     def client_ping(self, msg):
         """
         Method for ClientManager to ping the API when it needs more tasks or has taken a task
         """
-
+        msg = msg.decode('utf-8')
         if msg == msg_constants.SENT:
             # Client sent task to pipeline, needs a new one
             self.busy_clients -= 1
             self.draw()
-        if msg == msg_constants.RECEIVED:
+        elif msg == msg_constants.RECEIVED:
             self.busy_clients += 1
+        else:
+            raise Exception("Error: Client pinged master with unknown message")
 
     def create_client(self, id : int, **kwargs) -> str:
         """

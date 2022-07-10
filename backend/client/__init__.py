@@ -3,6 +3,7 @@ from abc import abstractmethod
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
 import backend.utils.msg_constants as msg_constants
+from backend.utils.rabbit_utils import rabbitmq_callback
 
 import pickle
 
@@ -73,17 +74,6 @@ class ClientManager:
         self.subscriber.subscribe_on_thread()
         self.subscriber_active.subscribe_on_thread()
 
-        #self.msg_channel.basic_consume(
-        #    queue = 'client',
-        #    auto_ack = True,
-        #    on_message_callback = rabbit_utils.message_callback(self.dequeue_task)
-        #)
-        #self.msg_channel.basic_consume(
-        #    queue = 'active',
-        #    auto_ack = True,
-        #    on_message_callback = rabbit_utils.message_callback(self.dequeue_active_task)
-        #)
-
     def notify_completion(self, id : int):
         """
         Notify the ClientManager that a client has completed a task.
@@ -105,11 +95,7 @@ class ClientManager:
                 routing_key = 'model',
                 payload = tasks
             )
-            #self.msg_channel.basic_publish(
-            #    exchange = '',
-            #    routing_key = 'model',
-            #    body = tasks
-            #)
+
         elif task.model_id == -1:
             self.client_states[id] = CS.IDLE
 
@@ -117,31 +103,19 @@ class ClientManager:
                 routing_key = 'pipeline',
                 payload = tasks
             )
-
-            #self.msg_channel.basic_publish(
-            #    exchange = '',
-            #    routing_key = 'pipeline',
-            #    body = tasks
-            #)
             
             self.publisher.publish(
                 routing_key = 'main',
                 payload = msg_constants.SENT
             )
-            #self.msg_channel.basic_publish(
-            #    exchange = '',
-            #    routing_key = 'main',
-            #    body = rabbit_utils.msg_constants.SENT
-            #)
         else:
             raise Exception("Error: Frontend returned a task with invalid model id parameter.")
 
-    
+    @rabbitmq_callback
     def dequeue_task(self, tasks : str):
         """
         Receive message for a new task. Assume this is from pipeline
         """
-
         task : Task = pickle.loads(tasks)
 
         for id in self.clients:
@@ -153,15 +127,11 @@ class ClientManager:
                     routing_key = 'main',
                     payload = msg_constants.RECEIVED
                 )
-                #self.msg_channel.basic_publish(
-                #    exchange = '',
-                #    routing_key = 'main',
-                #    body = rabbit_utils.msg_constants.RECEIVED
-                #)
                 return
         
         raise Exception("Error: New task dequeued with no free clients to receive.")
     
+    @rabbitmq_callback
     def dequeue_active_task(self, tasks : str):
         """
         Receive message for in progress (active) task.

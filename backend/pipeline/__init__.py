@@ -31,12 +31,6 @@ class Pipeline:
 
         self.subscriber.subscribe_on_thread()
 
-        #self.msg_channel.basic_consume(
-        #    queue = 'pipeline',
-        #    auto_ack = True,
-        #    on_message_callback = rabbit_utils.message_callback(self.dequeue_task)
-        #)
-
     @abstractmethod
     def queue_task(self) -> bool:
         """
