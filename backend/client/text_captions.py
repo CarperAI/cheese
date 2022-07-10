@@ -52,12 +52,13 @@ class TextCaptionFront:
         self.url = url
 
         self.data : TextCaptionBatchElement = None
+        self.buffer : TextCaptionBatchElement = None
         self.showing_data = False # is data visible?
         # A reference to the owner client object
         self.client = None
 
     def update(self, data):
-        self.data = data
+        self.buffer = data
 
     def generate_str(self):
         # generate a string from data using caption indexes
@@ -101,6 +102,10 @@ class TextCaptionFront:
             # Otherwise if they pressed submit while seeing nothing,
             # they need to be shown their new task
             # If its ready, show it
+
+            if self.buffer is not None:
+                self.data = self.buffer
+                self.buffer = None
             if self.data is not None:
                 self.showing_data = True
                 return self.data.text
