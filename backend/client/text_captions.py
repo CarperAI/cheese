@@ -1,4 +1,4 @@
-from backend.client import Client
+from backend.client import Client, ClientFront
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
 from backend.data.text_captions import TextCaptionBatchElement
@@ -6,78 +6,23 @@ from backend.data.text_captions import TextCaptionBatchElement
 import gradio as gr
 
 class TextCaptionClient(Client):
-    def __init__(self, id : int):
-        super().__init__(id)
-
-        self.front = None
-
-    def push_task(self, task : Task):
-        try:
-            assert self.front is not None
-        except:
-            raise Exception("Error: Pushed task to frontend before it was initialized")
-        
-        self.task = task
-        data : TextCaptionBatchElement = task.data
-        self.front.update(data)
-
     def init_front(self) -> str:
-        self.front = TextCaptionFront()
-        self.front.client = self
-
-        return self.front.url
-
-    def front_ping(self):
-        """
-        For frontend to ping client that it is done with task.
-        """
-        # First update task data
-        self.task.data = self.front.data
-        self.notify() 
+        return super().init_front(TextCaptionFront)
         
-class TextCaptionFront:
+class TextCaptionFront(ClientFront):
     def __init__(self):
+        super().__init__()
         # Set default data and create the UI
         self.demo = gr.Interface(
             fn = self.response,
             inputs = ["text"],
             outputs = [gr.Textbox(placeholder = "")],
         )
-        _, local_url, url = self.demo.launch(
-            share = True, quiet = True,
-            prevent_thread_lock = True,
-            )
 
-        self.local = local_url
-        self.url = url
-
-        self.data : TextCaptionBatchElement = None
-        self.buffer : TextCaptionBatchElement = None
-        self.showing_data = False # is data visible?
-        # A reference to the owner client object
-        self.client = None
-
-    def update(self, data):
-        self.buffer = data
-
-    def generate_str(self):
-        # generate a string from data using caption indexes
-        res = self.data.text
-
-        i = len(self.data.captions) - 1
-        for inds in reversed(self.data.caption_index):
-            res = res[:inds[0]] + f"[{i}][" + res[inds[0]:inds[1]] + "]" + res[inds[1]:]
-            i -= 1
-
-        res_captions = ""
-        for i, caption in enumerate(self.data.captions):
-            res_captions += f"{i}: {caption}\n"
-
-        return res, res_captions
-
-    def response(self, inp):
+    def response(self, inp) -> str:
         """
-        What to display to user after they've pressed submit button.
+        Take input from user and gives a response for them to see. If they are being shown a task,
+        takes their input as being a caption. Otherwise, ignores the input but refreshes and tries to get a new task.
         """
         if self.showing_data:
             # If they were seeing data and pressed button,
@@ -95,19 +40,13 @@ class TextCaptionFront:
             self.data.captions += captions
             self.data.caption_index += indices
 
-            self.showing_data = False
-            self.client.front_ping()
-            self.data = None
+            self.complete_task()
         else:
             # Otherwise if they pressed submit while seeing nothing,
             # they need to be shown their new task
             # If its ready, show it
 
-            if self.buffer is not None:
-                self.data = self.buffer
-                self.buffer = None
-            if self.data is not None:
-                self.showing_data = True
+            if self.refresh():
                 return self.data.text
         return ""
 

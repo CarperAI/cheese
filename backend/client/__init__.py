@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from backend.data import BatchElement
 
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
@@ -8,6 +9,7 @@ from backend.utils.rabbit_utils import rabbitmq_callback
 import pickle
 
 from b_rabbit import BRabbit
+import gradio as gr
 
 class ClientManager:
     def __init__(self):
@@ -150,9 +152,9 @@ class Client:
     def __init__(self, id : int):
         self.id = id
         self.task : Task = None
-        self.url : str = None
 
-        self.manager = None
+        self.manager : ClientManager = None
+        self.front : ClientFront = None
     
     def set_manager(self, manager : ClientManager):
         self.manager = manager
@@ -176,16 +178,101 @@ class Client:
         self.task = None
         return res
     
-    @abstractmethod
     def push_task(self, task : Task):
         """
         Pass a new task to client for it to work on.
         """
-        pass
+        try:
+            assert self.front is not None
+        except:
+            raise Exception("Error: Pushed task to frontend before it was initialized")
+
+        self.task = task
+        data : BatchElement = task.data
+        self.front.update(data)
+
 
     @abstractmethod
-    def init_front(self) -> str:
+    def init_front(self, front_cls = None) -> str:
         """
         Initialize frontend for this particular client and return a URL to access it.
         """
-        pass
+        self.front = front_cls()
+        self.front.set_client(self)
+
+        return self.front.launch()
+
+    def front_ping(self):
+        """
+        For frontend to ping client that it is done with task
+        """
+        self.task.data = self.front.data
+        self.notify()
+
+class ClientFront:
+    def __init__(self):
+        self.demo : gr.Interface = None
+        self.data : BatchElement = None # Data currently being shown to user
+        self.buffer : BatchElement = None # Buffer for next data to show user
+
+        self.showing_data = False # is data visible to user currently?
+        self.client : Client = None
+
+        self.launched = False
+
+    def set_client(self, parent : Client):
+        """
+        Set client that is "parent" to this frontend.
+
+        :param parent: Parent of frontend
+        :type parent: Client
+        """
+        self.client = parent
+    
+    def update(self, data : BatchElement):
+        """
+        Update the buffer with new data
+        """
+        self.buffer = data
+
+    def complete_task(self):
+        """
+        Finish task and wipe data. Ping parent client
+        """
+        self.showing_data = False
+        self.client.front_ping()
+        self.data = None
+    
+    def refresh(self) -> bool:
+        """
+        Refresh data from buffer.
+
+        :return: Whether or not there is new data to present after the refresh
+        :rtype: bool
+        """
+        if self.buffer is not None:
+            self.data = self.buffer
+            self.buffer = None
+        if self.data is not None:
+            self.showing_data = True
+            return True
+        return False
+
+    def launch(self) -> str:
+        """
+        Launch the frontend application and return URL to access it
+
+        :return: URL for user to access frontend
+        :rtype: str
+        """
+        try:
+            assert self.client is not None
+        except:
+            raise Exception("Error: Launched frontend with unspecified parent client")
+
+        _, _, url = self.demo.launch(
+            share = True, quiet = True,
+            prevent_thread_lock = True,
+        )
+        self.launched = True
+        return url
