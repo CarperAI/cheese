@@ -13,11 +13,9 @@ if __name__ == "__main__":
     url = cheese.create_client(1)
     print(url)
 
-    cheese.start()
-
     # Test to make sure this showed up in the final dataset
-    res_dataset = load_from_disk("data_res")
-    print(res_dataset["text"])
-    print(res_dataset["captions"])
-    print(res_dataset["caption_index"])
-    print(res_dataset["id"])
+    #res_dataset = load_from_disk("data_res")
+    #print(res_dataset["text"])
+    #print(res_dataset["captions"])
+    #print(res_dataset["caption_index"])
+    #print(res_dataset["id"])
