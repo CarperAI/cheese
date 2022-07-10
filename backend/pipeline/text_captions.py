@@ -49,7 +49,7 @@ class TextCaptionPipeline(Pipeline):
         :rtype: bool
         """
 
-        if self.done or self.current_index == self.total_items:
+        if self.done or self.current_index >= self.total_items:
             return False
 
         text = self.dataset["text"][self.current_index]

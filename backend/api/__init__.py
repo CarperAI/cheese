@@ -37,9 +37,6 @@ class CHEESE:
         self.busy_clients = 0
 
         self.finished = False # For when pipeline is exhausted
-
-    def terminate(self):
-        self.connection.close()
     
     @rabbitmq_callback
     def client_ping(self, msg):
@@ -91,11 +88,11 @@ class CHEESE:
         if self.busy_clients >= self.clients:
             return
 
-        exhausted = self.pipeline.queue_task()
+        exhausted = not self.pipeline.queue_task()
 
         if exhausted and self.pipeline.done:
             #  finished, so we can stop
-            self.terminate()
+            self.finished = True
 
 
     
