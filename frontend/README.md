@@ -2,11 +2,11 @@
 
 ## Frontend project outline
 
-[x] initiation of frontend codebase (sveltekit .ts + tailwinccss - robvanvolt)
-[ ] readme / jupyter notebook by shahbuland for backend (backend <-> backend/"minimal" frontend)
-[ ] backend <-> frontend (POC) (julian)
-[ ] frontend form (template without styling) (orz)
-[ ] frontend styling (tailwindcss) (robvanvolt)
+- [x] initiation of frontend codebase (sveltekit .ts + tailwinccss - robvanvolt)
+- [ ] readme / jupyter notebook by shahbuland for backend (backend <-> backend/"minimal" frontend)
+- [ ] backend <-> frontend (POC) (julian)
+- [ ] frontend form (template without styling) (orz)
+- [ ] frontend styling (tailwindcss) (robvanvolt)
 
 ## create-svelte
 
