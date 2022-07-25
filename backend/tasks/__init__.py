@@ -1,4 +1,3 @@
-from enum import Enum
 from dataclasses import dataclass
 
 from backend.data import BatchElement
