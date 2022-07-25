@@ -4,9 +4,11 @@
 
 - [x] initiation of frontend codebase (sveltekit .ts + tailwinccss - robvanvolt)
 - [ ] readme / jupyter notebook by shahbuland for backend (backend <-> backend/"minimal" frontend)
-- [ ] backend <-> frontend (POC) (julian)
+- [ ] backend <-> frontend (POC) (julian*)
 - [ ] frontend form (template without styling) (orz)
 - [ ] frontend styling (tailwindcss) (robvanvolt)
+
+*[http://localhost:5173/test](http://localhost:5173/test) under src/routes/test.svelte can be used for form prototyping @orz
 
 ## create-svelte
 
