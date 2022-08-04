@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
-from backend.socket import ClientSocket
+from backend.client.socket import ClientSocket
 import backend.utils.msg_constants as msg_constants
 from backend.utils.rabbit_utils import rabbitmq_callback
 from backend.utils.thread_utils import (
