@@ -40,43 +40,17 @@ class TextCaptionPipeline(Pipeline):
 
         self.current_index = self.finished_items
 
-
-    def queue_task(self) -> bool:
-        """
-        Creates a task and queue to text captioning client.
-        
-        :return: True if succesful, False if pipeline exhausted.
-        :rtype: bool
-        """
-
-        if self.done or self.current_index >= self.total_items:
-            return False
-
+    def exhausted(self) -> bool:
+        return self.done or self.current_index >= self.total_items
+    
+    def fetch(self) -> TextCaptionBatchElement:
         text = self.dataset["text"][self.current_index]
         batch_element = TextCaptionBatchElement(self.current_index, text, [], [])
-
-        task = Task(batch_element)
-        tasks = pickle.dumps(task)
-
-        self.publisher.publish(
-            routing_key = 'client',
-            payload = tasks
-        )
-
         self.current_index += 1
-        return True
-    
-    @rabbitmq_callback
-    def dequeue_task(self, tasks : str):
-        """
-        Receive message corresponding to task.
 
-        :param tasks: Task serialized as string.
-        :type tasks: str
-        """
-        
-        task = pickle.loads(tasks)
-        batch_element = task.data
+        return batch_element
+
+    def get(self, batch_element : BatchElement):
 
         caption_index = [elem for elem in batch_element.caption_index]
         captions = [elem for elem in batch_element.captions]
