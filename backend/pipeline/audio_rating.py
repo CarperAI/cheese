@@ -47,7 +47,7 @@ class AudioRatingPipeline(Pipeline):
         print("Preparing Data Queue")
         self.id_queue = []
         for i in range(self.total_items):
-            _, done = self.index_book
+            _, done = self.index_book[i]
             if not done:
                 self.id_queue.append(i)
 
@@ -58,16 +58,10 @@ class AudioRatingPipeline(Pipeline):
         id = self.id_queue.pop(0)
         path, _ = self.index_book[id]
         path = os.path.join(self.read_path, path)
-        sr, wf_arr = read_wav(path)
-
-        # cast to stereo
-        if len(wf_arr.shape) == 1:
-            wf_arr = np.concatenate((wf_arr[:,None], wf_arr[:,None]), axis = 1)
 
         be = AudioRatingBatchElement(
             id = id,
-            audio = wf_arr,
-            sr = sr
+            path = path
         )
 
         return be

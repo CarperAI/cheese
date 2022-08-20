@@ -137,6 +137,7 @@ class GradioClientFront:
         _, _, url = self.demo.launch(
             share = True, quiet = True,
             prevent_thread_lock = True,
+            enable_queue = True
         )
         self.launched = True
         return url

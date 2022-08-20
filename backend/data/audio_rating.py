@@ -6,7 +6,6 @@ import numpy as np
 @dataclass
 class AudioRatingBatchElement(BatchElement):
     id : int
-    audio : np.ndarray # [channels, samples]
-    sr : int # sampling rate
+    path : str
     rating : int = -1
     comment : str = ""
