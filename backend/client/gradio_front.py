@@ -4,6 +4,7 @@ from backend.client.states import ClientState as CS
 from backend.data.text_captions import TextCaptionBatchElement
 
 import gradio as gr
+import time
 
 class GradioTextCaptionClient(Client):
     def init_front(self) -> str:
@@ -44,12 +45,8 @@ class GradioTextCaptionFront(ClientFront):
             self.data.caption_index += indices
 
             self.complete_task()
-        else:
-            # Otherwise if they pressed submit while seeing nothing,
-            # they need to be shown their new task
-            # If its ready, show it
-
-            if self.refresh():
-                return self.data.text
-        return ""
-
+        
+        while not self.refresh():
+            time.sleep(0.5)
+        
+        return self.data.text
