@@ -1,6 +1,8 @@
 from abc import abstractmethod
-from backend.data import BatchElement
 
+from typing import Any, Iterable
+
+from backend.data import BatchElement
 from backend.tasks import Task
 from backend.client.states import ClientState as CS
 from backend.client import ClientManager
@@ -10,7 +12,9 @@ from backend.utils.rabbit_utils import rabbitmq_callback
 import pickle
 
 from b_rabbit import BRabbit
-import gradio as gr
+import gradio
+from gradio.components import IOComponent
+import time
 
 class GradioClient:
     def __init__(self, id : int):
@@ -75,7 +79,7 @@ class GradioClient:
 
 class GradioClientFront:
     def __init__(self):
-        self.demo : gr.Interface = None
+        self.demo : gradio.Interface = None
         self.data : BatchElement = None # Data currently being shown to user
         self.buffer : BatchElement = None # Buffer for next data to show user
 
@@ -83,6 +87,16 @@ class GradioClientFront:
         self.client : GradioClient = None
 
         self.launched = False
+
+    def make_demo(self, inputs : Iterable[IOComponent], outputs : Iterable[IOComponent]):
+        """
+        Given a list of inputs and outputs for gradio, constructs demo. Should always be called by a class instance constructor.
+        """
+        self.demo = gradio.Interface(
+            fn = self.response,
+            inputs = inputs,
+            outputs = outputs
+        )
 
     def set_client(self, parent : GradioClient):
         """
@@ -142,22 +156,63 @@ class GradioClientFront:
         self.launched = True
         return url
 
-    @abstractmethod
-    def response(self, inp) -> str:
+    def response(self, *inp) -> Any:
         """
-        Take input from user and gives a response for them to see. If they are being shown a task,
-        takes their input as being a caption. Otherwise, ignores the input but refreshes and tries to get a new task.
-        Abstract method is a skeleton showing example of required structure.
+        Submit input from user then stall until next data is received and ready to display.
+        
+        :return: Outputs for gradio demo
+        :rtype: Iterable[Any] or Any
         """
         if self.showing_data:
-            # == Use input to complete task ==
-
+            try:
+                self.receive(*inp)
+            except Exception as e:
+                if type(e) is InvalidInputException:
+                    return self.handle_input_exception(*e.args)
+                else:
+                    raise e
+                    
             self.complete_task()
-        else:
-            # Otherwise if they pressed submit while seeing nothing,
-            # they need to be shown their new task
-            # If its ready, show it
+        
+        # stall until new data ready
+        while not self.refresh():
+            time.sleep(0.5)
+        
+        return self.send() 
 
-            if self.refresh():
-                return self.data.text
-        return ""
+    def handle_input_exception(self, *args) -> Any:
+        """
+        Handle invalid input exceptions. Default behavior is to just present same data again.
+
+        :param *args: List of arguments that caused the exception
+
+        :return: Outputs for gradio demo
+        :rtype: Iterable[Any] or Any
+        """
+        return self.send()
+
+    @abstractmethod
+    def receive(self, *inp):
+        """
+        Take input from user and modify self.data in response appropriately.
+
+        :param input: All inputs to the gradio demo
+        """
+        pass
+
+    @abstractmethod
+    def send(self) -> Any:
+        """
+        Use self.data to send relevant data to user. 
+
+        :return: All outputs to gradio demo
+        :rtype: Iterable[any] or any
+        """
+        pass
+
+class InvalidInputException(Exception):
+    """
+    For when input is not valid
+    """
+    def __init__(self, *args):
+        self.args = args

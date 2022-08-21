@@ -1,5 +1,5 @@
 from backend.pipeline.text_captions import TextCaptionPipeline
-from backend.client.gradio_front import GradioTextCaptionClient
+from backend.client.gradio_text_captions import GradioTextCaptionClient
 from backend.api import CHEESE
 
 from datasets import load_from_disk
