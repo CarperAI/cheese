@@ -11,6 +11,9 @@ from backend.data.audio_rating import AudioRatingBatchElement
 
 from backend.utils import safe_mkdir
 
+def valid_audio_file(path):
+    return path.endswith(".wav")
+
 class AudioRatingPipeline(Pipeline):
     """
     Pipeline for rating audio samples from a folder of WAV files
@@ -38,7 +41,7 @@ class AudioRatingPipeline(Pipeline):
             # Objects for keeping track of what data has been processed
             safe_mkdir("tmp")
             self.index_book = {}
-            for i, path in enumerate(os.listdir(self.read_path)):
+            for i, path in enumerate(filter(valid_audio_file, os.listdir(self.read_path))):
                 self.index_book[i] = [path, False] # Path and status (i.e. has it been labelled yet)
 
             self.save_dataset()
