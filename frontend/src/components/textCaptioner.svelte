@@ -1,7 +1,9 @@
 <script lang="ts">
     import { onMount, createEventDispatcher } from 'svelte';
     import type { HighlightObject } from '../highlight';
-    let text = "The DOM Node interface is an abstract base class upon which\n\n\n\n many other DOM API objects are based, thus letting those object types to be used similarly and often interchangeably. As an abstract class, there is no such thing as a plain Node object. All objects that implement Node functionality are based on one of its subclasses. Most notable are Document, Element, and DocumentFragment.";
+
+    export let text = "";
+    export let busy = false;
     
     var dispatch = createEventDispatcher();
 
@@ -189,12 +191,25 @@
         }
     }
 
-    onMount(()=>{
+    let highlightArea = null;
+    onMount(() => {
+        highlightArea = document.getElementById("highlightarea");
+    });
+
+    let prevText = null;
+    const onTextChange = (text) => {
+        if (prevText) {
+            // Moving on to new text.
+            localStorage.clear()
+        }
+        prevText = text;
+
+        highlightArea.textContent = text;
+
         let highlights = getHighlights();
         highlights.sort((a,b)=>{
             return a.id < b.id?-1:a.id == b.id?0:1;
         })
-        document.getElementById("highlightarea")!.innerText = text;
         for(let i = 0;i < highlights.length;i++){
             addHighlight(highlights[i]);
             addCaption(highlights[i]);
@@ -203,7 +218,9 @@
             document.getElementById(`span ${id}`)?.addEventListener('mouseover',spanHover);
             document.getElementById(`span ${id}`)?.addEventListener('mouseout',spanHover);
         }
-    })
+    }
+
+    $: highlightArea && onTextChange(text);
 
     /**
      * Retrives all highlights from localstorage and presents them as an array
@@ -216,8 +233,8 @@
         return highlights;
     }
 </script>
-<p on:mouseup = {onTextSelect} id="highlightarea">{text}</p>
 
-<button class="bg-zinc-200 hover:bg-zinc-300" on:click={()=>{
+<p on:mouseup={onTextSelect} id="highlightarea" />
+<button class="bg-zinc-200 hover:bg-zinc-300 disabled:bg-zinc-100" disabled={busy} on:click={()=>{
     dispatch('highlights', getHighlights());
-}}>Submit</button> 
+}}>Submit</button>
