@@ -4,7 +4,7 @@
 
     export let text = "";
     export let busy = false;
-    
+
     var dispatch = createEventDispatcher();
 
     /**
@@ -76,16 +76,16 @@
         const prevHtml = highlightarea.innerHTML;
         let highlightSpan = createHighlightSpan(id);
         highlightSpan.innerHTML = prevHtml.substring(startHtmlPos,endHtmlPos);
-        highlightarea.innerHTML = prevHtml.substring(0,startHtmlPos) + 
+        highlightarea.innerHTML = prevHtml.substring(0,startHtmlPos) +
             highlightSpan.outerHTML +
-            prevHtml.substring(endHtmlPos);   
+            prevHtml.substring(endHtmlPos);
     }
     /**
      * Inner function utilized to determine the position of highlighted text
-     * 
-     * Iteratively checks sibling nodes until we reach start of paragraph node and 
+     *
+     * Iteratively checks sibling nodes until we reach start of paragraph node and
      * adds-up their offsets.
-     * 
+     *
      * Returns textoffset, htmloffset and number of spans between node and start of paragraph
      * @param node Html Node to calculate offset from
      */
@@ -94,12 +94,12 @@
         let textOffset = 0;
         let htmlOffset = 0;
         let numSpans = 0;
-        
+
         while(sibling){
             if(sibling.nodeType == Node.ELEMENT_NODE){
                 if(sibling.nodeName == "SPAN"){
                     let currentElement = <HTMLElement> sibling.firstChild!.parentElement;
-                    
+
                     if(currentElement.id.startsWith("caption")){
                         /* Caption Node, skip it */
                         htmlOffset += currentElement.outerHTML.length;
@@ -112,7 +112,7 @@
                         numSpans++;
                     }
                 }
-                else if(sibling.textContent == ""){ 
+                else if(sibling.textContent == ""){
                     /* For BR element */
                     htmlOffset += 3;
                     textOffset += 1;
@@ -140,7 +140,6 @@
 
         /* Validate selection to be within text */
         if(!selection || selection.toString() == "")return;
-        
 
         let id = selection.anchorNode?.parentElement?.id;
         if(id != "highlightarea")return;
@@ -153,10 +152,10 @@
         /* TODO: pls don't do this in final version */
         const caption = window.prompt("Add your caption");
         if(!caption || caption == "")return;
-        
+
         anchorTextOffset += selection.anchorOffset;
         focusTextOffset += selection.focusOffset;
-        
+
         let startTextOffset:number, endTextOffset:number, startHtmlOffset:number, endHtmlOffset:number;
         if((anchorTextOffset + anchorHtmlOffset) > (focusTextOffset + focusHtmlOffset)){
             startTextOffset = focusTextOffset;
