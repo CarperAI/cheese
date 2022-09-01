@@ -171,7 +171,7 @@ class GradioClientFront:
                     return self.handle_input_exception(*e.args)
                 else:
                     raise e
-                    
+            
             self.complete_task()
         
         # stall until new data ready
