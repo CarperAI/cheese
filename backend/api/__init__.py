@@ -90,7 +90,7 @@ class CHEESE:
 
         exhausted = not self.pipeline.queue_task()
 
-        if exhausted and self.pipeline.done:
+        if exhausted and self.pipeline.exhausted():
             #  finished, so we can stop
             self.finished = True
 

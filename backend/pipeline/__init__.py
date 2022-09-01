@@ -52,6 +52,7 @@ class Pipeline:
         """
         Send completed batch element to data destination.
         """
+        pass
 
     def queue_task(self) -> bool:
         """

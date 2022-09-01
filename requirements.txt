@@ -3,3 +3,4 @@ datasets
 gradio
 markupsafe
 pandas
+joblib

@@ -5,10 +5,7 @@ import pickle
 from typing import List
 
 from backend.pipeline import Pipeline
-from backend.data import BatchElement
 from backend.data.text_captions import TextCaptionBatchElement
-from backend.tasks import Task
-from backend.utils.rabbit_utils import rabbitmq_callback
 
 class TextCaptionPipeline(Pipeline):
     """
@@ -50,8 +47,7 @@ class TextCaptionPipeline(Pipeline):
 
         return batch_element
 
-    def get(self, batch_element : BatchElement):
-
+    def get(self, batch_element : TextCaptionBatchElement):
         caption_index = [elem for elem in batch_element.caption_index]
         captions = [elem for elem in batch_element.captions]
 
