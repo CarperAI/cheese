@@ -14,6 +14,12 @@ import gradio as gr
 import datasets
 import time
 
+"""
+    In this example task, we present two images from the laion-art dataset to our labellers,
+    and have them select which one they prefer over the two. For the case in which an image
+    is not loading for them, they will be given an error button to specify they are not seeing any data.
+"""
+
 # BatchElement should store everything you want to write to result dataset
 # And everything you want to show the labeller
 @dataclass
@@ -34,16 +40,8 @@ class ImageSelectionPipeline(IterablePipeline):
     def preprocess(self, x):
         """
         Preprocess is called as soon as a new data element is drawn from iterator.
-        It should handle invalid data by throwing the exception shown below.
-        When an exception is thrown, the pipeline ignores the data and moves on to the next
-        thing in the iterator.
         """
-        try:
-            # Check that the url can be converted to image quickly
-            _ =  url2img(x["URL"], timeout = 1)
-            return x["URL"]
-        except:
-            raise InvalidDataException()
+        return x["URL"]
     
     def fetch(self) -> ImageSelectionBatchElement:
         """
