@@ -1,3 +1,4 @@
+from atexit import register
 from backend.pipeline.iterable_dataset import IterablePipeline, InvalidDataException
 from backend.data import BatchElement
 from backend.client.gradio_client import GradioClient, GradioClientFront
@@ -10,7 +11,6 @@ from PIL import Image
 from backend.utils.img_utils import url2img
 
 import gradio as gr
-import requests
 import datasets
 import time
 
@@ -18,17 +18,18 @@ import time
 # And everything you want to show the labeller
 @dataclass
 class ImageSelectionBatchElement(BatchElement):
-    img1 : Image
-    img2 : Image
+    img1_url : str
+    img2_url : str
     select : int = 0 # 0 None, -1 Left, 1, Right
     time : float = 0 # Time in seconds it took for user to select image
+    bad_data : bool = False # For when images don't load and user can't respond
 
 class ImageSelectionPipeline(IterablePipeline):
     def init_dataset(self):
         """
         This initializes the dataset we will be writing our results to.
         """
-        return self.init_dataset_from_col_names(["img_1", "img_2", "selection", "time"])
+        return self.init_dataset_from_col_names(["img1_url", "img2_url", "selection", "time"])
 
     def preprocess(self, x):
         """
@@ -38,9 +39,9 @@ class ImageSelectionPipeline(IterablePipeline):
         thing in the iterator.
         """
         try:
-            img =  url2img(x["URL"], timeout = 1)
-            img = img.resize((256, 256))
-            return img
+            # Check that the url can be converted to image quickly
+            _ =  url2img(x["URL"], timeout = 1)
+            return x["URL"]
         except:
             raise InvalidDataException()
     
@@ -51,20 +52,20 @@ class ImageSelectionPipeline(IterablePipeline):
         """
         # IterablePipeline.fetch_next gets the next item from iterator and preprocesses it
         # It will return None if it could not get any new items
-        data1 = self.fetch_next()
-        data2 = self.fetch_next()
+        url1 = self.fetch_next()
+        url2 = self.fetch_next()
         
-        return ImageSelectionBatchElement(data1, data2)
+        return ImageSelectionBatchElement(url1, url2)
     
     def post(self, be : ImageSelectionBatchElement):
         """
         Post takes a finished (labelled) batch element and posts it to result dataset.
         """
-        print("Post called")
-        row = {"img_1" : be.img1, "img_2" : be.img2, "selection" : be.select, "time" : be.time}
+        row = {"img1_url" : be.img1_url, "img2_url" : be.img2_url, "selection" : be.select, "time" : be.time}
         # IterablePipeline.post_row(...) takes a dict and adds it as a row to end of the result dataset
         # It also saves the result dataset and updates progress (in most cases it should always be called in post)
-        self.post_row(row)
+        # We check for bad data and avoid it
+        if not be.bad_data: self.post_row(row)
 
 # IterablePipeline requires you to convert whatever dataset/data source you want to read from
 # into an iterable
@@ -92,14 +93,16 @@ class ImageSelectionFront(GradioClientFront):
                 gr.Textbox("Of the two images below, select whichever one you prefer over the other.",
                     show_label = False, interactive = False
                 )
+                error_btn = gr.Button("Press This If An Image Is Not Loading")
+                error_btn.style(full_width = True)
                 with gr.Row():
                     with gr.Column():
-                        im_left = gr.Image(show_label = False)
-                        btn_left = gr.Button("Select Left")
+                        im_left = gr.Image(show_label = False, shape = (256, 256))
+                        btn_left = gr.Button("Select Above")
                         btn_left.style(full_width = True)
                     with gr.Column():
-                        im_right = gr.Image(show_label = False)
-                        btn_right = gr.Button("Select Right")
+                        im_right = gr.Image(show_label = False, shape = (256, 256))
+                        btn_right = gr.Button("Select Above")
                         btn_right.style(full_width = True)
 
             # Note how both button clicks call response, but with different arguments
@@ -109,14 +112,17 @@ class ImageSelectionFront(GradioClientFront):
                 return self.response(["Left"])
             def btn_right_click():
                 return self.response(["Right"])
+            def error_click():
+                return self.response(["Error"])
+            
+            def register_click_event(object, event):
+                object.click(
+                    event, inputs = [], outputs = [im_left, im_right]
+                )
 
-            btn_left.click(
-                btn_left_click, inputs = [], outputs = [im_left, im_right]
-            )
-
-            btn_right.click(
-                btn_right_click, inputs = [], outputs = [im_left, im_right]
-            )
+            register_click_event(btn_left, btn_left_click)
+            register_click_event(btn_right, btn_right_click)
+            register_click_event(error_btn, error_click)
 
         self.response_timer = None
 
@@ -128,6 +134,8 @@ class ImageSelectionFront(GradioClientFront):
             self.data.select = -1
         elif res == "Right":
             self.data.select = 1
+        else:
+            self.data.bad_data = True
         
         # Log time it took them to make selection
         if self.response_timer is not None:
@@ -140,7 +148,7 @@ class ImageSelectionFront(GradioClientFront):
     def send(self):
         # Start timer whenever a new piece of data is shown
         self.response_timer = time.time()
-        return self.data.img1, self.data.img2
+        return self.data.img1_url, self.data.img2_url
 
 # This class simply needs to be made to support connection between front end and the ClientManager in backend
 class ImageSelectionClient(GradioClient):
@@ -157,7 +165,9 @@ if __name__ == "__main__":
     )
 
     url1 = cheese.create_client(1)
+    url2 = cheese.create_client(2)
     print(url1)
+    print(url2)
 
     while not cheese.finished:
         time.sleep(2)
