@@ -107,11 +107,11 @@ class ImageSelectionFront(GradioClientFront):
             # The arguments to response will later be passed to self.receive(...)
             # The result of response is whatever is outputted by self.send()
             def btn_left_click():
-                return self.response(["Left"])
+                return self.response("Left")
             def btn_right_click():
-                return self.response(["Right"])
+                return self.response("Right")
             def error_click():
-                return self.response(["Error"])
+                return self.response("Error")
             
             def register_click_event(object, event):
                 object.click(
