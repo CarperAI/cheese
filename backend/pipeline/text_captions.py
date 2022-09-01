@@ -47,7 +47,7 @@ class TextCaptionPipeline(Pipeline):
 
         return batch_element
 
-    def get(self, batch_element : TextCaptionBatchElement):
+    def post(self, batch_element : TextCaptionBatchElement):
         caption_index = [elem for elem in batch_element.caption_index]
         captions = [elem for elem in batch_element.captions]
 
