@@ -1,8 +1,10 @@
 <script lang="ts">
     import { onMount, createEventDispatcher } from 'svelte';
     import type { HighlightObject } from '../highlight';
-    let text = "The DOM Node interface is an abstract base class upon which\n\n\n\n many other DOM API objects are based, thus letting those object types to be used similarly and often interchangeably. As an abstract class, there is no such thing as a plain Node object. All objects that implement Node functionality are based on one of its subclasses. Most notable are Document, Element, and DocumentFragment.";
-    
+
+    export let text = "";
+    export let busy = false;
+
     var dispatch = createEventDispatcher();
 
     /**
@@ -74,16 +76,16 @@
         const prevHtml = highlightarea.innerHTML;
         let highlightSpan = createHighlightSpan(id);
         highlightSpan.innerHTML = prevHtml.substring(startHtmlPos,endHtmlPos);
-        highlightarea.innerHTML = prevHtml.substring(0,startHtmlPos) + 
+        highlightarea.innerHTML = prevHtml.substring(0,startHtmlPos) +
             highlightSpan.outerHTML +
-            prevHtml.substring(endHtmlPos);   
+            prevHtml.substring(endHtmlPos);
     }
     /**
      * Inner function utilized to determine the position of highlighted text
-     * 
-     * Iteratively checks sibling nodes until we reach start of paragraph node and 
+     *
+     * Iteratively checks sibling nodes until we reach start of paragraph node and
      * adds-up their offsets.
-     * 
+     *
      * Returns textoffset, htmloffset and number of spans between node and start of paragraph
      * @param node Html Node to calculate offset from
      */
@@ -92,12 +94,12 @@
         let textOffset = 0;
         let htmlOffset = 0;
         let numSpans = 0;
-        
+
         while(sibling){
             if(sibling.nodeType == Node.ELEMENT_NODE){
                 if(sibling.nodeName == "SPAN"){
                     let currentElement = <HTMLElement> sibling.firstChild!.parentElement;
-                    
+
                     if(currentElement.id.startsWith("caption")){
                         /* Caption Node, skip it */
                         htmlOffset += currentElement.outerHTML.length;
@@ -110,7 +112,7 @@
                         numSpans++;
                     }
                 }
-                else if(sibling.textContent == ""){ 
+                else if(sibling.textContent == ""){
                     /* For BR element */
                     htmlOffset += 3;
                     textOffset += 1;
@@ -138,7 +140,6 @@
 
         /* Validate selection to be within text */
         if(!selection || selection.toString() == "")return;
-        
 
         let id = selection.anchorNode?.parentElement?.id;
         if(id != "highlightarea")return;
@@ -151,10 +152,10 @@
         /* TODO: pls don't do this in final version */
         const caption = window.prompt("Add your caption");
         if(!caption || caption == "")return;
-        
+
         anchorTextOffset += selection.anchorOffset;
         focusTextOffset += selection.focusOffset;
-        
+
         let startTextOffset:number, endTextOffset:number, startHtmlOffset:number, endHtmlOffset:number;
         if((anchorTextOffset + anchorHtmlOffset) > (focusTextOffset + focusHtmlOffset)){
             startTextOffset = focusTextOffset;
@@ -189,12 +190,25 @@
         }
     }
 
-    onMount(()=>{
+    let highlightArea = null;
+    onMount(() => {
+        highlightArea = document.getElementById("highlightarea");
+    });
+
+    let prevText = null;
+    const onTextChange = (text) => {
+        if (prevText) {
+            // Moving on to new text.
+            localStorage.clear()
+        }
+        prevText = text;
+
+        highlightArea.textContent = text;
+
         let highlights = getHighlights();
         highlights.sort((a,b)=>{
             return a.id < b.id?-1:a.id == b.id?0:1;
         })
-        document.getElementById("highlightarea")!.innerText = text;
         for(let i = 0;i < highlights.length;i++){
             addHighlight(highlights[i]);
             addCaption(highlights[i]);
@@ -203,7 +217,9 @@
             document.getElementById(`span ${id}`)?.addEventListener('mouseover',spanHover);
             document.getElementById(`span ${id}`)?.addEventListener('mouseout',spanHover);
         }
-    })
+    }
+
+    $: highlightArea && onTextChange(text);
 
     /**
      * Retrives all highlights from localstorage and presents them as an array
@@ -216,8 +232,8 @@
         return highlights;
     }
 </script>
-<p on:mouseup = {onTextSelect} id="highlightarea">{text}</p>
 
-<button class="bg-zinc-200 hover:bg-zinc-300" on:click={()=>{
+<p on:mouseup={onTextSelect} id="highlightarea" />
+<button class="bg-zinc-200 hover:bg-zinc-300 disabled:bg-zinc-100" disabled={busy} on:click={()=>{
     dispatch('highlights', getHighlights());
-}}>Submit</button> 
+}}>Submit</button>

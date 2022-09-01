@@ -48,7 +48,7 @@ class ClientSocket:
         front = self.mgr.clients[client_id].front
         if front.on_submit(payload):
             return Message("task_available")
-        return None
+        return Message("idle")
 
     @synchronized("mgr_lock")
     def __check_valid_client_id(self, client_id) -> int:
