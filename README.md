@@ -15,7 +15,7 @@ Assuming a source dataset is present (you may generate one with the generate_tes
 python -m examples.test_gradio_api
 ```
 
-# Custom tasks in Grad.io
+# Custom tasks in Gradio
 Making new tasks with a gradio frontend in CHEESE is very simple! You will have to define subclasses for:
 backend.data.BatchElement (a dataclass)
 backend.pipeline.Pipeline
