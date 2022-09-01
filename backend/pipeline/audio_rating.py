@@ -10,30 +10,24 @@ from backend.data.audio_rating import AudioRatingBatchElement
 
 class AudioRatingPipeline(WavFolderPipeline):
     """
-    Pipeline for rating audio samples from a folder of WAV files
+    Pipeline for rating audio samples from a folder of WAV files. 
     """
+
+    def init_dataset(self) -> Dataset:
+        return self.init_dataset_from_col_names(["id", "path", "rating", "comment"])
+
     def fetch(self) -> AudioRatingBatchElement:
-        id = self.id_queue.pop(0)
-        path, _ = self.index_book[id]
-        path = os.path.join(self.read_path, path)
+        """
+        Pops an ID from a queue over the index book, then creates a batch element from corresponding value
+        """
+        return AudioRatingBatchElement(**self.id_pop())
 
-        be = AudioRatingBatchElement(
-            id = id,
-            path = path
-        )
-
-        return be
-
-    def get(self, batch_element : AudioRatingBatchElement):
+    def post(self, batch_element : AudioRatingBatchElement):
         id = batch_element.id
+        path = batch_element.path
         rating = batch_element.rating
         comment = batch_element.comment
 
-        path, _ = self.index_book[id]
-        self.res_dataset = self.res_dataset.add_item(
-            {"id" : id, "file_name" : path, "rating" : rating, "comment" : comment}
-        )
+        new_row = {"id" : id, "file_name" : path, "rating" : rating, "comment" : comment}
 
-        self.index_book[id][1] = True
-
-        self.save_dataset()
+        self.id_complete(id, new_row)

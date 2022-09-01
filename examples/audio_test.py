@@ -6,6 +6,8 @@ import time
 from datasets import load_from_disk
 
 if __name__ == "__main__":
+    col_names = ["id", "file_name", "rating", "comment"]
+    
     cheese = CHEESE(
         AudioRatingPipeline, client_cls = AudioRatingClient,
         pipeline_kwargs = {"read_path" : "audio_dataset", "write_path" : "audio_data_res", "force_new" : True}
