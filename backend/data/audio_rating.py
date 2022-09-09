@@ -5,7 +5,7 @@ import numpy as np
 
 @dataclass
 class AudioRatingBatchElement(BatchElement):
-    id : int
-    path : str
+    id : int = None
+    path : str = None
     rating : int = -1
     comment : str = ""
