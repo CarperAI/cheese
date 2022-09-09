@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, Dict, Any
 
 from datasets import Dataset
 
@@ -43,4 +43,10 @@ class DatasetPipeline(Pipeline):
         :rtype: datasets.Dataset
         """
         pass
+
+    def add_row_to_dataset(self, row : Dict[str, Any]):
+        """
+        Add single row to result dataset
+        """
+        self.res_dataset = self.res_dataset.add_item(row)
 
