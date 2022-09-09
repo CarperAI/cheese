@@ -48,7 +48,7 @@ class Pipeline:
         pass
 
     @abstractmethod
-    def get(self, batch_element : BatchElement):
+    def post(self, batch_element : BatchElement):
         """
         Send completed batch element to data destination.
         """
@@ -84,4 +84,4 @@ class Pipeline:
         task = pickle.loads(tasks)
         batch_element = task.data
 
-        self.get(batch_element)
+        self.post(batch_element)
