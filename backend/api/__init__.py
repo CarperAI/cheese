@@ -74,14 +74,6 @@ class CHEESE:
         self.clients += 1
         self.draw() # pre-emptively draw a task for the client to pick up
         return res
-    
-    def create_model(self, **kwargs):
-        """
-        Create instance of model for labelling assistance
-
-        :param kwargs: Any parameters to be passed to the model constructor.
-        """
-        raise NotImplementedError
 
     def draw(self):
         """
