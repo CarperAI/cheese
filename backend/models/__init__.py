@@ -52,7 +52,7 @@ class BaseModel:
 
         while self.task_queue:
             task = self.task_queue.pop(0)
-            task.data = self.process(task)
+            task.data = self.process(task.data)
             self.queue_task(task)
 
         self.working = False
@@ -64,14 +64,14 @@ class BaseModel:
         :param task: The task to queue
         :type task: Task
         """
-
-        tasks = pickle.dumps(task)
         
         if task.data.trip == task.data.trip_max:
             route = 'pipeline'
         else:
             route = 'active'
 
+        tasks = pickle.dumps(task)
+        
         self.publisher.publish(
             routing_key = route,
             payload = tasks

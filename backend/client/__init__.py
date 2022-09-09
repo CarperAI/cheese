@@ -143,7 +143,7 @@ class ClientManager:
         """
         Receive message for in progress (active) task.
         """
-        task : Task = pickle.load(tasks)
+        task : Task = pickle.loads(tasks)
 
         id = task.client_id
 

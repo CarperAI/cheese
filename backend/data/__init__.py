@@ -7,3 +7,4 @@ class BatchElement:
     trip : int = 0 # How many targets has the BatchElement visited so far?
     trip_max : int = 1 # How many targets *should* the BatchElement visit before going back to pipeline
     # Default value of 1 causes data to immediately go back to pipeline after labelling by user
+    # ex: Value of 3 would allow for data to follow pipeline -> client -> model -> client -> pipeline
