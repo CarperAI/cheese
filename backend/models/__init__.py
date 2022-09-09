@@ -70,7 +70,7 @@ class BaseModel:
         if task.data.trip == task.data.trip_max:
             route = 'pipeline'
         else:
-            route = 'client'
+            route = 'active'
 
         self.publisher.publish(
             routing_key = route,
