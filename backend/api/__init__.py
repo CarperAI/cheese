@@ -1,6 +1,9 @@
 from typing import ClassVar
 
 from backend.client import ClientManager
+from backend.pipeline import Pipeline
+from backend.models import BaseModel
+
 import backend.utils.msg_constants as msg_constants
 from backend.utils.rabbit_utils import rabbitmq_callback
 
@@ -23,15 +26,15 @@ class CHEESE:
         self.subscriber.subscribe_on_thread()
         
         # API components initialized
-        self.pipeline = pipeline_cls(**pipeline_kwargs)
-        self.model = model_cls(**model_kwargs) if model_cls is not None else None
+        self.pipeline : Pipeline = pipeline_cls(**pipeline_kwargs)
+        self.model : BaseModel = model_cls(**model_kwargs) if model_cls is not None else None
 
         self.client_manager = ClientManager()
         self.client_cls = client_cls
 
         self.pipeline.init_connection(self.connection)
         self.client_manager.init_connection(self.connection)
-        if self.model is not None: self.model.init_msg_channel(self.msg_channel)
+        if self.model is not None: self.model.init_connection(self.connection)
 
         self.clients = 0
         self.busy_clients = 0
