@@ -22,20 +22,7 @@ class WriteOnlyPipeline(DatasetPipeline):
             assert not force_new
             self.res_dataset = load_from_disk(write_path)
         except:
-            self.res_dataset = self.init_dataset()
-
-            self.save_dataset()
-
-    @abstractmethod
-    def init_dataset(self) -> Dataset:
-        """
-        Create initial dataset to write batch elements to after they have been labelled/evaluated. Derived class
-        can easily implement with init_dataset_from_col_names(...)
-
-        :return: Empty dataset object
-        :rtype: datasets.Dataset
-        """
-        pass
+            pass
 
     @abstractmethod
     def fetch(self) -> BatchElement:
