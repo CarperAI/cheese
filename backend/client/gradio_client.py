@@ -14,7 +14,7 @@ import joblib
 
 from b_rabbit import BRabbit
 import gradio as gr
-from gradio.components import IOComponent
+from gradio.components import Component
 import time
 
 import random
@@ -34,16 +34,18 @@ class GradioClientManager(ClientManager):
         # will need to update to something more secure before using in 
         # a setting where security is important
         self.id_pass : Dict[int, int] = {} # [Client ID, Password]
+        self.client_ids : Iterable[int] = []
 
         self.client_tasks : Dict[int, Iterable[Task]]= {} # 
         self.client_states : Dict[int, CS] = {}
 
         self.front : GradioFront = None
 
-    def init_front(self, front_cls):
-        self.front = front_cls()
+    def init_front(self, front_cls) -> str:
+        self.front : GradioFront = front_cls()
         self.front.set_manager(self)
         self.front.launch()
+        return self.front.demo.share_url
 
     def save_user_info(self, path):
         """
@@ -56,6 +58,7 @@ class GradioClientManager(ClientManager):
         Load info on users from a previously saved file
         """
         self.id_pass = joblib.load(path)
+        self.client_ids = list(self.id_pass.keys())
 
 
     def add_client(self, id : int):
@@ -73,6 +76,7 @@ class GradioClientManager(ClientManager):
         pwd = random.randrange(100000,999999)
 
         self.id_pass[id] = pwd
+        self.client_ids.append(id)
 
         return id, pwd
 
@@ -156,9 +160,10 @@ class GradioClientManager(ClientManager):
         Receive message for a new task. Assume this is from pipeline
         """
         task : Task = pickle.loads(tasks)
+
         task.data.trip += 1
 
-        for id in self.clients:
+        for id in self.client_ids:
             if self.client_states[id] == CS.IDLE:
                 self.client_tasks[id].append(task)
                 self.client_states[id] = CS.BUSY
@@ -169,7 +174,7 @@ class GradioClientManager(ClientManager):
                 )
                 return
         
-        raise Exception("Error: New task dequeued with no free clients to receive.")
+        print("Warning: New task dequeued with no free clients to receive. This is expected if the Rabbit queue was populated before CHEESE was started")
     
     @rabbitmq_callback
     def dequeue_active_task(self, tasks : str):
@@ -180,7 +185,7 @@ class GradioClientManager(ClientManager):
 
         id = task.client_id
 
-        if id not in self.client_states:
+        if id not in self.client_ids:
             raise Exception(f"Error: Active task dequeued but target client with id {id} does not exist")
         if self.client_states[id] != CS.WAITING:
             raise Exception("Error: Active task dequeued but target client was not waiting for any active tasks.")
@@ -196,11 +201,11 @@ class GradioFront:
     def __init__(self):
         self.manager : GradioClientManager = None
         with gr.Blocks() as self.demo:
-            self.id : gr.State = gr.State(-1)
-            self.task : gr.State = gr.State(None)
+            self.id : gr.State = gr.Variable(-1)
+            self.task : gr.State = gr.Variable(None)
 
             with gr.Column(visible = True) as login:
-                login_comps : Dict[str, gr.IOComponent] = self.login()
+                login_comps : Dict[str, Component] = self.login()
 
             with gr.Column(visible = False) as main:
                 self.main()
@@ -237,7 +242,11 @@ class GradioFront:
         if self.manager is None:
             raise Exception("Error: Tried to lanuch frontend without connecting it to a client manager. Please use GradioFront.set_manager()")
         
-        self.demo.launch(share = True)
+        self.demo.launch(
+            share = True, quiet = True,
+            prevent_thread_lock = True,
+            enable_queue = True
+        )
 
     def set_manager(self, manager : GradioClientManager):
         """
@@ -278,7 +287,7 @@ class GradioFront:
         pass
 
     @abstractmethod
-    def present(self, task : Task) -> List[gr.IOComponent]:
+    def present(self, task : Task) -> List[Component]:
         """
         Present data in the task to user. Should take task and return outputs to gradio functions
         in list form
@@ -303,11 +312,16 @@ class GradioFront:
         except Exception as e:
             if type(e) is InvalidInputException:
                 return self.handle_input_exception(*e.args)
+            else:
+                raise e
 
         self.manager.submit_task(client_id, task)
         task = self.manager.await_new_task(client_id)
 
-        return [task] + self.present(task)
+        present_out = self.present(task)
+        if type(present_out) is tuple: present_out = list(present_out)
+
+        return [task] + present_out
     
     def handle_input_exception(self, *args) -> Any:
         """
