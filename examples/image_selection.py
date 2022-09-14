@@ -1,7 +1,7 @@
 from atexit import register
 from backend.pipeline.iterable_dataset import IterablePipeline, InvalidDataException
 from backend.data import BatchElement
-from backend.client.gradio_client import GradioClient, GradioClientFront
+from backend.client.gradio_client import GradioFront
 
 from backend.api import CHEESE
 
@@ -22,10 +22,14 @@ import time
 
 # BatchElement should store everything you want to write to result dataset
 # And everything you want to show the labeller
+# Ensure every field has a default value
+
+# Note that BatchElements have several parameters, so use keywords when calling
+# constructor on your own BatchElement
 @dataclass
 class ImageSelectionBatchElement(BatchElement):
-    img1_url : str
-    img2_url : str
+    img1_url : str = None
+    img2_url : str = None
     select : int = 0 # 0 None, -1 Left, 1, Right
     time : float = 0 # Time in seconds it took for user to select image
     bad_data : bool = False # For when images don't load and user can't respond
@@ -53,7 +57,8 @@ class ImageSelectionPipeline(IterablePipeline):
         url1 = self.fetch_next()
         url2 = self.fetch_next()
         
-        return ImageSelectionBatchElement(url1, url2)
+        res = ImageSelectionBatchElement(img1_url = url1, img2_url = url2)
+        return res
     
     def post(self, be : ImageSelectionBatchElement):
         """
@@ -77,95 +82,90 @@ def make_iter():
     return iter(ds)
 
 # The Front object is what will be responsible for showing data to the labeller and collecting their responses
-class ImageSelectionFront(GradioClientFront):
-    def __init__(self):
-        super().__init__()
+class ImageSelectionFront(GradioFront):
 
-        # All GradioClientFronts have three things you must use when constructing your own frontend for CHEESE
-        # 1. self.demo, which is the demo that is run through gradio
-        # 2. self.response, which is the method called to handle inputs/outputs going between Gradio and CHEESE
-        # 3. self.data, which is the BatchElement your pipeline uses
+    # main() is where you create your UI
+    def main(self):
 
-        with gr.Blocks() as self.demo:
-            with gr.Column():
-                gr.Textbox("Of the two images below, select whichever one you prefer over the other.",
-                    show_label = False, interactive = False
-                )
-                error_btn = gr.Button("Press This If An Image Is Not Loading")
-                error_btn.style(full_width = True)
-                with gr.Row():
-                    with gr.Column():
-                        im_left = gr.Image(show_label = False, shape = (256, 256))
-                        btn_left = gr.Button("Select Above")
-                        btn_left.style(full_width = True)
-                    with gr.Column():
-                        im_right = gr.Image(show_label = False, shape = (256, 256))
-                        btn_right = gr.Button("Select Above")
-                        btn_right.style(full_width = True)
+        # All GradioFronts have one main method you must use:
+        # self.response, which is the method called to handle inputs/outputs going between Gradio and CHEESE
+        # self.id and self.task are both gr.Variable attributes that should be passed as the first two
+        # parameters to any call to response. Additionally, self.task will be first value returned by
+        # response, with the rest being the output of present
 
-            # Note how both button clicks call response, but with different arguments
-            # The arguments to response will later be passed to self.receive(...)
-            # The result of response is whatever is outputted by self.send()
-            def btn_left_click():
-                return self.response("Left")
-            def btn_right_click():
-                return self.response("Right")
-            def error_click():
-                return self.response("Error")
-            
-            def register_click_event(object, event):
-                object.click(
-                    event, inputs = [], outputs = [im_left, im_right]
-                )
+        with gr.Column():
+            gr.Textbox("Of the two images below, select whichever one you prefer over the other.",
+                show_label = False, interactive = False
+            )
+            error_btn = gr.Button("Press This If An Image Is Not Loading")
+            error_btn.style(full_width = True)
+            with gr.Row():
+                with gr.Column():
+                    im_left = gr.Image(show_label = False, shape = (256, 256))
+                    btn_left = gr.Button("Select Above")
+                    btn_left.style(full_width = True)
+                with gr.Column():
+                    im_right = gr.Image(show_label = False, shape = (256, 256))
+                    btn_right = gr.Button("Select Above")
+                    btn_right.style(full_width = True)
 
-            register_click_event(btn_left, btn_left_click)
-            register_click_event(btn_right, btn_right_click)
-            register_click_event(error_btn, error_click)
+        # Note how both button clicks call response, but with different arguments
+        # The arguments to response will later be passed to self.receive(...)
+        # The result of response is whatever is outputted by self.send()
+        def btn_left_click(id, task):
+            return self.response(id, task, "Left")
 
-        self.response_timer = None
+        def btn_right_click(id, task):
+            return self.response(id, task, "Right")
 
-    # Response calls receive and passes along whatever input it got
-    # We update self.data (an ImageSelectionBatchElement) appropriately
-    def receive(self, *inp):
-        res = inp[0]
-        if res == "Left":
-            self.data.select = -1
-        elif res == "Right":
-            self.data.select = 1
-        else:
-            self.data.bad_data = True
+        def error_click(id, task):
+            return self.response(id, task, "Error")
         
-        # Log time it took them to make selection
-        if self.response_timer is not None:
-            self.data.time = time.time() - self.response_timer
-            self.response_timer = None
+        # Note how when we register an event in gradio,
+        # we ensure self.id and self.task are both the first two parameters of inputs
+        # AND the first two parameters of outputs
+        def register_click_event(object, event):
+            object.click(
+                event, inputs = [self.id, self.task], outputs = [self.task, im_left, im_right]
+            )
 
+        register_click_event(btn_left, btn_left_click)
+        register_click_event(btn_right, btn_right_click)
+        register_click_event(error_btn, error_click)
+
+    # Response calls receive and passes along id, task and whatever input it got
+    # We can use task.data to access the actual data that is being labelled
+    # and update it using the users response
+    def receive(self, *inp):
+        _, task, res = inp
+
+        if res == "Left":
+            task.data.select = -1
+        elif res == "Right":
+            task.data.select = 1
+        else:
+            task.data.bad_data = True
+        
+        return task
     
-    # This is what response eventually calls
-    # We return the data from the BatchElement that we want to show the labeller
-    def send(self):
-        # Start timer whenever a new piece of data is shown
-        self.response_timer = time.time()
-        return self.data.img1_url, self.data.img2_url
-
-# This class simply needs to be made to support connection between front end and the ClientManager in backend
-class ImageSelectionClient(GradioClient):
-    def init_front(self) -> str:
-        return super().init_front(ImageSelectionFront)
+    # Response finally calls present to create outputs for gradio to show user
+    # In this example, this is simply the next left and right image
+    def present(self, task):
+        data : ImageSelectionBatchElement = task.data
+        return data.img1_url, data.img2_url
 
 if __name__ == "__main__":
     # The pipeline kwargs are inherited from IterablePipeline
     cheese = CHEESE(
-        ImageSelectionPipeline, ImageSelectionClient,
+        ImageSelectionPipeline, ImageSelectionFront,
         pipeline_kwargs = {
             "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : True, "max_length" : 5
         }
     )
+    print(cheese.launch())
 
-    url1 = cheese.create_client(1)
-    url2 = cheese.create_client(2)
-    print(url1)
-    print(url2)
+    print(cheese.create_client(15))
+    print(cheese.create_client(71))
 
     while not cheese.finished:
         time.sleep(2)
