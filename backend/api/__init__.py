@@ -1,6 +1,10 @@
-from typing import ClassVar
+from re import I
+from typing import ClassVar, Iterable, Tuple, Dict, Any
+
+from backend.pipeline import Pipeline
 
 from backend.client import ClientManager
+from backend.client.gradio_client import GradioClientManager
 import backend.utils.msg_constants as msg_constants
 from backend.utils.rabbit_utils import rabbitmq_callback
 
@@ -8,7 +12,33 @@ from b_rabbit import BRabbit
 
 # Master object for CHEESE
 class CHEESE:
-    def __init__(self, pipeline_cls, client_cls = None, model_cls = None, pipeline_kwargs = {}, client_kwargs = {}, model_kwargs = {}):
+    """
+    Main object to use for running tasks with CHEESE
+
+    :param pipeline_cls: Class for pipeline
+    :type pipeline_cls: Callable[, Pipeline]
+
+    :param client_cls: Class for client
+    :type client_cls: Callable[,GradioFront] if gradio
+
+    :param model_cls: Class for model
+    :type model_cls: Callable[,BaseModel]
+
+    :param pipeline_kwargs: Additional keyword arguments to pass to pipeline constructor
+    :type pipeline_kwargs: Dict[str, Any]
+
+    :param gradio: Whether to use gradio or custom frontend
+    :type gradio: bool
+    """
+    def __init__(
+        self,
+        pipeline_cls, client_cls = None, model_cls = None,
+        pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
+        gradio : bool = True
+        ):
+
+        self.gradio = gradio
+
         # Initialize rabbit MQ server
         self.connection = BRabbit(host='localhost', port=5672)
 
@@ -23,11 +53,14 @@ class CHEESE:
         self.subscriber.subscribe_on_thread()
         
         # API components initialized
-        self.pipeline = pipeline_cls(**pipeline_kwargs)
+        self.pipeline : Pipeline = pipeline_cls(**pipeline_kwargs)
         self.model = model_cls(**model_kwargs) if model_cls is not None else None
 
-        self.client_manager = ClientManager()
         self.client_cls = client_cls
+        if gradio:
+            self.client_manager = GradioClientManager()
+        else:
+            self.client_manager = ClientManager()
 
         self.pipeline.init_connection(self.connection)
         self.client_manager.init_connection(self.connection)
@@ -37,6 +70,12 @@ class CHEESE:
         self.busy_clients = 0
 
         self.finished = False # For when pipeline is exhausted
+
+    def launch(self) -> str:
+        """
+        Launch the frontend and return URL for users to access it.
+        """
+        return self.client_manager.init_front(self.client_cls)
     
     @rabbitmq_callback
     def client_ping(self, msg):
@@ -53,24 +92,20 @@ class CHEESE:
         else:
             raise Exception("Error: Client pinged master with unknown message")
 
-    def create_client(self, id : int, **kwargs) -> str:
+    def create_client(self, id : int) -> Tuple[int, int]:
         """
-        Create a client instance with given id and any other optional parameters.
+        Create a client instance with given id.
         
         :param id: A unique identifying number for the client.
         :type id: int
 
-        :param kwargs: Any other parameters to be passed to the client constructor.
-
-        :return: URL said client can use to access frontend.
+        :return: Username and password user can use to log in to CHEESE
         """
-        if self.client_cls is None:
-            raise Exception("No client class specified")
 
-        res = self.client_manager.add_client(id, self.client_cls, **kwargs)
+        id, pwd = self.client_manager.add_client(id)
         self.clients += 1
         self.draw() # pre-emptively draw a task for the client to pick up
-        return res
+        return id, pwd
     
     def create_model(self, **kwargs):
         """
