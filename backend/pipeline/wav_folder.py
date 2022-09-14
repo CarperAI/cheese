@@ -45,15 +45,12 @@ class WavFolderPipeline(DatasetPipeline):
             self.res_dataset = load_from_disk(write_path)
             self.index_book = joblib.load("save_data/index_book.joblib")
         except:
-            self.res_dataset = self.init_dataset()
             
             # Objects for keeping track of what data has been processed
             safe_mkdir("save_data")
             self.index_book = {}
             for i, path in enumerate(filter(valid_audio_file, os.listdir(self.read_path))):
                 self.index_book[i] = [path, False] # Path and status (i.e. has it been labelled yet)
-
-            self.save_dataset()
         
         # From index book, build queue in terms of ids
         print("Preparing Data Queue")
@@ -73,17 +70,6 @@ class WavFolderPipeline(DatasetPipeline):
         """
         super().save_dataset()
         joblib.dump(self.index_book, "save_data/index_book.joblib")
-
-    @abstractmethod
-    def init_dataset(self) -> Dataset:
-        """
-        Create initial dataset to write batch elements to after they have been labelled/evaluated. Derived class
-        can easily implement with init_dataset_from_col_names(...)
-
-        :return: Empty dataset object
-        :rtype: datasets.Dataset
-        """
-        pass
 
     @abstractmethod
     def fetch(self) -> BatchElement:

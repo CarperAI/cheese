@@ -11,7 +11,3 @@ def safe_mkdir(path : str):
     if os.path.isdir(path):
         return
     os.mkdir(path)
-
-def make_empty_dataset(colNames : Iterable[str]) -> Dataset:
-    res = pd.DataFrame(columns = colNames)
-    return Dataset.from_pandas(res)

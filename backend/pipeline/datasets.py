@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, Dict, Any
 
 from datasets import Dataset
 
@@ -23,24 +23,15 @@ class DatasetPipeline(Pipeline):
             raise Exception("Error: Attempted to save result dataset without every specifiying a path to write to")
 
         self.res_dataset.save_to_disk(self.write_path)
-    
-    def init_dataset_from_col_names(self, col_names : Iterable[str]) -> Dataset:
-        """
-        Initialize a dataset from column names.
 
-        :param col_names: List of names for columns of dataset
-        :type col_names: Iterable[str]
+    def add_row_to_dataset(self, row : Dict[str, Any]):
         """
-        return make_empty_dataset(col_names)
-    
-    @abstractmethod
-    def init_dataset(self) -> Dataset:
+        Add single row to result dataset
         """
-        Create initial dataset to write batch elements to after they have been labelled/evaluated. Derived class
-        can easily implement with init_dataset_from_col_names(...)
-
-        :return: Empty dataset object
-        :rtype: datasets.Dataset
-        """
-        pass
+        if self.res_dataset is None:
+            row = {key : [row[key]] for key in row}
+            self.res_dataset = Dataset.from_dict(row)
+        else:
+            self.res_dataset = self.res_dataset.add_item(row)
+        self.save_dataset()
 
