@@ -88,9 +88,28 @@ class ClientManager:
         """
 
         task : Task = self.clients[id].get_task()
+        task.data.client_id = id
+        task.client_id = id
+
         tasks = pickle.dumps(task)
 
-        if task.model_id == -2:
+        to_pipeline = task.data.trip >= task.data.trip_max
+
+        if to_pipeline:
+            self.client_states[id] = CS.IDLE
+
+            # Send finished task to pipeline
+            self.publisher.publish(
+                routing_key = 'pipeline',
+                payload = tasks
+            )
+            
+            # Tell main object we are ready for more data
+            self.publisher.publish(
+                routing_key = 'main',
+                payload = msg_constants.SENT
+            )
+        else: # send to model
             self.client_states[id] = CS.WAITING
 
             self.publisher.publish(
@@ -98,27 +117,13 @@ class ClientManager:
                 payload = tasks
             )
 
-        elif task.model_id == -1:
-            self.client_states[id] = CS.IDLE
-
-            self.publisher.publish(
-                routing_key = 'pipeline',
-                payload = tasks
-            )
-            
-            self.publisher.publish(
-                routing_key = 'main',
-                payload = msg_constants.SENT
-            )
-        else:
-            raise Exception("Error: Frontend returned a task with invalid model id parameter.")
-
     @rabbitmq_callback
     def dequeue_task(self, tasks : str):
         """
         Receive message for a new task. Assume this is from pipeline
         """
         task : Task = pickle.loads(tasks)
+        task.data.trip += 1
 
         for id in self.clients:
             if self.client_states[id] == CS.IDLE:
@@ -138,13 +143,16 @@ class ClientManager:
         """
         Receive message for in progress (active) task.
         """
-        task : Task = pickle.load(tasks)
+        task : Task = pickle.loads(tasks)
 
         id = task.client_id
 
+        if id not in self.client_states:
+            raise Exception(f"Error: Active task dequeued but target client with id {id} does not exist")
         if self.client_states[id] != CS.WAITING:
-            raise Exception("Error: Active task dequeued with invalid target client.")
+            raise Exception("Error: Active task dequeued but target client was not waiting for any active tasks.")
         
+        task.data.trip += 1
         self.clients[id].push_task(task)
         self.client_states[id] = CS.BUSY
 
