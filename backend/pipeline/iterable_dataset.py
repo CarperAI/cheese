@@ -9,7 +9,7 @@ import numpy as np
 
 from backend.pipeline.datasets import DatasetPipeline
 from backend.data import BatchElement
-from backend.utils import safe_mkdir, make_empty_dataset
+from backend.utils import safe_mkdir
 
 class IterablePipeline(DatasetPipeline):
     """
@@ -42,22 +42,9 @@ class IterablePipeline(DatasetPipeline):
             self.res_dataset = load_from_disk(write_path)
             self.progress = joblib.load("save_data/progress.joblib")
         except:
-            self.res_dataset = self.init_dataset()
-
             safe_mkdir("save_data")
             self.progress = 0
             self.save_dataset()
-    
-    @abstractmethod
-    def init_dataset(self) -> Dataset:
-        """
-        Create initial dataset to write batch elements to after they have been labelled/evaluated. Derived class
-        can easily implement with init_dataset_from_col_names(...)
-
-        :return: Empty dataset object
-        :rtype: datasets.Dataset
-        """
-        pass
 
     def exhausted(self) -> bool:
         return self.progress >= self.max_length or self.fail_next

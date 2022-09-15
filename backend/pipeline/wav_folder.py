@@ -10,7 +10,7 @@ import numpy as np
 
 from backend.pipeline.datasets import DatasetPipeline
 from backend.data import BatchElement
-from backend.utils import safe_mkdir, make_empty_dataset
+from backend.utils import safe_mkdir
 
 def valid_audio_file(path):
     return path.endswith(".wav")

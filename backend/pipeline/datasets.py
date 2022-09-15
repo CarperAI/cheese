@@ -4,7 +4,6 @@ from typing import Iterable, Dict, Any
 from datasets import Dataset
 
 from backend.pipeline import Pipeline
-from backend.utils import make_empty_dataset
 
 class DatasetPipeline(Pipeline):
     """
@@ -18,7 +17,7 @@ class DatasetPipeline(Pipeline):
 
     def save_dataset(self):
         if self.res_dataset is None:
-            raise Exception("Error: Attempted to save result dataset without every initializing it.")
+            return
         if self.write_path is None:
             raise Exception("Error: Attempted to save result dataset without every specifiying a path to write to")
 
