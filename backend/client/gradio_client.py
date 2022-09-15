@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from typing import Any, Iterable, Dict, Tuple, List
+from typing import Any, Iterable, Dict, Tuple, List, Callable
 
 from backend.data import BatchElement
 from backend.tasks import Task
@@ -274,6 +274,17 @@ class GradioFront:
         and outputs must go to/come out of the function.
         """
         pass
+
+    def wrap_event(self, event : Callable):
+        """
+        For any gradio event (i.e. gr.Button.click, gr.Slider.change),
+        wrap with this method to ensure id and task are passed properly.
+        """
+        return lambda fn, inputs, outputs : event(
+            fn, 
+            inputs = [self.id, self.task] + inputs if type(inputs) is list else [inputs],
+            outputs = [self.task] + outputs if type(outputs) is list else [outputs]
+            )
 
     @abstractmethod
     def receive(self, *inp) -> Task:

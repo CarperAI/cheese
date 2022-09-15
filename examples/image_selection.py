@@ -35,12 +35,6 @@ class ImageSelectionBatchElement(BatchElement):
     bad_data : bool = False # For when images don't load and user can't respond
 
 class ImageSelectionPipeline(IterablePipeline):
-    def init_dataset(self):
-        """
-        This initializes the dataset we will be writing our results to.
-        """
-        return self.init_dataset_from_col_names(["img1_url", "img2_url", "selection", "time"])
-
     def preprocess(self, x):
         """
         Preprocess is called as soon as a new data element is drawn from iterator.
@@ -89,9 +83,7 @@ class ImageSelectionFront(GradioFront):
 
         # All GradioFronts have one main method you must use:
         # self.response, which is the method called to handle inputs/outputs going between Gradio and CHEESE
-        # self.id and self.task are both gr.Variable attributes that should be passed as the first two
-        # parameters to any call to response. Additionally, self.task will be first value returned by
-        # response, with the rest being the output of present
+        # The first two arguments to response are always assumed to be client's id and taks they are currently working on
 
         with gr.Column():
             gr.Textbox("Of the two images below, select whichever one you prefer over the other.",
@@ -109,9 +101,12 @@ class ImageSelectionFront(GradioFront):
                     btn_right = gr.Button("Select Above")
                     btn_right.style(full_width = True)
 
-        # Note how both button clicks call response, but with different arguments
+        # Note how all button clicks call response, but with different arguments
         # The arguments to response will later be passed to self.receive(...)
         # The result of response is whatever is outputted by self.send()
+
+        # Also note that in all instances, id and task are the first two arguments.
+        # Moreover, they must be the first two arguments in ANY function called by a gradio event
         def btn_left_click(id, task):
             return self.response(id, task, "Left")
 
@@ -121,12 +116,10 @@ class ImageSelectionFront(GradioFront):
         def error_click(id, task):
             return self.response(id, task, "Error")
         
-        # Note how when we register an event in gradio,
-        # we ensure self.id and self.task are both the first two parameters of inputs
-        # AND the first two parameters of outputs
-        def register_click_event(object, event):
-            object.click(
-                event, inputs = [self.id, self.task], outputs = [self.task, im_left, im_right]
+        # All gradio events must composed with self.wrap_event to ensure id and task are passed properly
+        def register_click_event(object, fn):
+            self.wrap_event(object.click)(
+                fn, inputs = [], outputs = [im_left, im_right]
             )
 
         register_click_event(btn_left, btn_left_click)
