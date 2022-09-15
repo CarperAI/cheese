@@ -101,7 +101,7 @@ class WavFolderPipeline(DatasetPipeline):
         Given a row to add to dataset, marks corresponding entry in index_book complete
         """
         path, _ = self.index_book[id]
-        self.res_dataset = self.res_dataset.add_item(row)
+        self.add_row_to_dataset(row)
 
         self.index_book[id][1] = True
         self.save_dataset()
