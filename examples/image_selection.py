@@ -32,7 +32,6 @@ class ImageSelectionBatchElement(BatchElement):
     img2_url : str = None
     select : int = 0 # 0 None, -1 Left, 1, Right
     time : float = 0 # Time in seconds it took for user to select image
-    bad_data : bool = False # For when images don't load and user can't respond
 
 class ImageSelectionPipeline(IterablePipeline):
     def preprocess(self, x):
@@ -62,7 +61,7 @@ class ImageSelectionPipeline(IterablePipeline):
         # IterablePipeline.post_row(...) takes a dict and adds it as a row to end of the result dataset
         # It also saves the result dataset and updates progress (in most cases it should always be called in post)
         # We check for bad data and avoid it
-        if not be.bad_data: self.post_row(row)
+        if not be.error: self.post_row(row)
 
 # IterablePipeline requires you to convert whatever dataset/data source you want to read from
 # into an iterable
@@ -125,6 +124,9 @@ class ImageSelectionFront(GradioFront):
         register_click_event(btn_left, btn_left_click)
         register_click_event(btn_right, btn_right_click)
         register_click_event(error_btn, error_click)
+    
+        # Return gradio outputs
+        return [im_left, im_right]
 
     # Response calls receive and passes along id, task and whatever input it got
     # We can use task.data to access the actual data that is being labelled
@@ -137,7 +139,7 @@ class ImageSelectionFront(GradioFront):
         elif res == "Right":
             task.data.select = 1
         else:
-            task.data.bad_data = True
+            task.data.error = True
         
         return task
     
@@ -145,7 +147,7 @@ class ImageSelectionFront(GradioFront):
     # In this example, this is simply the next left and right image
     def present(self, task):
         data : ImageSelectionBatchElement = task.data
-        return data.img1_url, data.img2_url
+        return [data.img1_url, data.img2_url]
 
 if __name__ == "__main__":
     # The pipeline kwargs are inherited from IterablePipeline

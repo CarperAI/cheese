@@ -208,14 +208,14 @@ class GradioFront:
                 login_comps : Dict[str, Component] = self.login()
 
             with gr.Column(visible = False) as main:
-                self.main()
+                outputs = self.main()
             
             # Deal with login here
             def login_fn(id, pwd):
                 valid = True
                 try:
-                    id = int(id)
-                    pwd = int(pwd)
+                    id = int(id.strip())
+                    pwd = int(pwd.strip())
                 except:
                     valid = False
                 
@@ -225,14 +225,16 @@ class GradioFront:
                 if valid:
                     # When valid, get a task then switch to main screen
                     task = self.manager.await_new_task(id)
-                    return id, task, gr.update(), gr.update(visible = False), gr.update(visible = True)
+                    return [id, task, gr.update(), gr.update(visible = False), gr.update(visible = True)] + \
+                        self.present(task)
                 else:
-                    return id, None, gr.update(visible = True), gr.update(), gr.update()
+                    return [id, None, gr.update(visible = True), gr.update(), gr.update()] + \
+                        [None] * len(outputs)
             
             login_comps["submit"].click(
                 login_fn,
                 inputs = [login_comps["idbox"], login_comps["pwdbox"]],
-                outputs = [self.id, self.task, login_comps["error"], login, main]
+                outputs = [self.id, self.task, login_comps["error"], login, main] + outputs
             )
     
     def launch(self):
@@ -267,11 +269,13 @@ class GradioFront:
         return {"idbox" : idbox, "pwdbox" : pwdbox, "submit" : submit, "error" : error}
             
     @abstractmethod
-    def main(self):
+    def main(self) -> List[Component]:
         """
         Gradio interface for collecting data can be written here. Should call GradioFront.response() with
         self. Please read the documentation of GradioFront.response for information on which specific inputs
         and outputs must go to/come out of the function.
+
+        :return: List of all output components in the gradio demo
         """
         pass
 
@@ -282,8 +286,8 @@ class GradioFront:
         """
         return lambda fn, inputs, outputs : event(
             fn, 
-            inputs = [self.id, self.task] + inputs if type(inputs) is list else [inputs],
-            outputs = [self.task] + outputs if type(outputs) is list else [outputs]
+            inputs = [self.id, self.task] + inputs,
+            outputs = [self.task] + outputs
             )
 
     @abstractmethod
