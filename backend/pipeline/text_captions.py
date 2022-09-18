@@ -10,6 +10,7 @@ from backend.data.text_captions import TextCaptionBatchElement
 class TextCaptionPipeline(Pipeline):
     """
     Pipeline for captioning dataset of text
+    NOTE: This code is deprecated and must be updated to inherit from datasets
     """
 
     def __init__(self, read_path : str, write_path : str, force_new : bool = False):

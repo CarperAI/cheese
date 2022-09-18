@@ -1,6 +1,6 @@
 from backend.pipeline.wav_folder import WavFolderPipeline
 from backend.data import BatchElement
-from backend.client.gradio_client import GradioClient, GradioClientFront
+from backend.client.gradio_client import GradioFront
 
 from backend.api import CHEESE
 
@@ -15,8 +15,8 @@ from dataclasses import dataclass
 
 @dataclass
 class AudioRatingBatchElement(BatchElement):
-    id : int # To store index over local data folder, we add ID to elements
-    path : str
+    id : int = None # To store index over local data folder, we add ID to elements
+    path : str = None
     rating : int = -1
     comment : str = ""
 
@@ -42,56 +42,79 @@ class AudioRatingPipeline(WavFolderPipeline):
         """
         Post labelled data to result dataset
         """
+
+        if be.error:
+            return
+
         new_row = {"id" : be.id, "file_name" : be.path, "rating" : be.rating, "comment" : be.comment}
         # WavFolderPipeline.id_complete(...) is needed to mark a wav file as having been used so it is not presented again
         # It also saves the dataset and index book, so should be called to post new data in most cases
         self.id_complete(be.id, new_row)
 
-class AudioRatingClient(GradioClient):
-    def init_front(self) -> str:
-        return super().init_front(AudioRatingFront)
+class AudioRatingFront(GradioFront):
+    def main(self):
+        with gr.Row():
+            with gr.Column():
+                error_btn = gr.Button("Press this if there is no audio sample being presented.")
+                gr.Textbox(
+                    "Please provide feedback on the presented audio sample in the form of a rating and comment.",
+                    show_label = False, interactive = False
+                )
+                rating = gr.Slider(
+                    minimum = 0, maximum = 10,
+                    step = 1, value = 0, label = "Rating"
+                )
+                comment = gr.Textbox(
+                    label = "Comment"
+                )
+                submit = gr.Button(
+                    "Submit"
+                )
+            with gr.Column():
+                sample = gr.Audio(interactive = False, label = "Audio Sample")
 
-class AudioRatingFront(GradioClientFront):
-    def __init__(self):
-        super().__init__()
-
-        # When defining a new task, GradioClientFront.data is used to access the BatchElement currently
-        # being presented to the user
-
-        # Make a super simple gradio demo that takes ratings, comments and shows an audio sample
-        self.make_demo(
-            inputs = [
-                gr.Slider(minimum = 0, maximum = 10, step = 1, value = 0, label = "Rating"),
-                gr.Textbox(label = "Comments")
-            ],
-            outputs = [gr.Audio(label = "Audio Sample")]
+        def error_fn(id, task, rating, comment):
+            task.data.error = True
+            return self.response(id, task, rating, comment)
+        
+        self.wrap_event(submit.click)(
+            self.response, inputs = [rating, comment], outputs = [sample]
         )
+
+        self.wrap_event(error_btn.click)(
+            error_fn, inputs = [rating, comment], outputs = [sample]
+        )
+
+        return [sample]
     
     def receive(self, *inp):
         """
-        Take list of inputs and modify self.data (BatchElement) with users ratings + comments
+        Take list of inputs and modify task data with users ratings + comments
         """
-        slider_out, comment = inp
-        self.data.rating = slider_out
-        self.data.comment = comment
+        _, task, slider_out, comment = inp
+        task.data.rating = slider_out
+        task.data.comment = comment
+
+        return task
     
-    def send(self):
+    def present(self, task):
         """
-        Extract gradio output (Audio path in this case) from self.data (BatchElement)
+        Extract gradio output (Audio path in this case) from task.data (BatchElement)
         """
-        return self.data.path
+        return [task.data.path]
 
 import time
 from datasets import load_from_disk
 
 if __name__ == "__main__":
     cheese = CHEESE(
-        AudioRatingPipeline, client_cls = AudioRatingClient,
+        AudioRatingPipeline, client_cls = AudioRatingFront,
         pipeline_kwargs = {"read_path" : "audio_dataset", "write_path" : "audio_data_res", "force_new" : True}
     )
+    print(cheese.launch())
 
-    url1 = cheese.create_client(1)
-    print(url1)
+    usr1, pass1 = cheese.create_client(1)
+    print(usr1, pass1)
 
     while True:
         time.sleep(2)
