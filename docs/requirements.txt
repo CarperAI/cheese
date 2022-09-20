@@ -5,3 +5,4 @@ gradio
 b_rabbit
 datasets
 webdataset
+joblib
