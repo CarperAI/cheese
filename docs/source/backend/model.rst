@@ -2,4 +2,6 @@
 
 Model In The Loop
 ******************
-todo
+
+.. autoclass:: backend.models.BaseModel
+   :members:
