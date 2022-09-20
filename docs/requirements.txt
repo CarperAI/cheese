@@ -1,9 +1,7 @@
-sphinx
+sphinx==4.0.0
 sphinx_rtd_theme
-myst_parser
 gradio
 b_rabbit
 datasets
 webdataset
-dataclasses
-abc
+joblib
