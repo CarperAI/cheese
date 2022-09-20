@@ -37,7 +37,8 @@ class BaseModel:
     @abstractmethod
     def process(self, data : BatchElement) -> BatchElement:
         """
-        Process BatchElement with model
+        Process BatchElement with model. Assume the inputs to the model are in the BatchElement,
+        then use them to create some outputs. The outputs should be added to the BatchElement before it is returned.
         """
         pass
 
