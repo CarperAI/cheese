@@ -1,6 +1,5 @@
 sphinx
 sphinx_rtd_theme
-myst_parser
 gradio
 b_rabbit
 datasets
