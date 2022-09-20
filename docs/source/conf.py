@@ -32,7 +32,6 @@ import sphinx_rtd_theme
 
 extensions = [
         'sphinx_rtd_theme',
-        'myst_parser',
         'sphinx.ext.todo',
         'sphinx.ext.viewcode',
         'sphinx.ext.autodoc',
