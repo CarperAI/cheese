@@ -103,9 +103,8 @@ class IterablePipeline(DatasetPipeline):
         """
         Given a row to add to result dataset: updates progress, adds row and saves.
         """
-        self.res_dataset = self.res_dataset.add_item(row)
+        super().add_row_to_dataset(row)
         self.progress += 1
-        self.save_dataset()
 
 class InvalidDataException(Exception):
     pass

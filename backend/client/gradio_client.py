@@ -128,30 +128,36 @@ class GradioClientManager(ClientManager):
         task.data.client_id = id
         task.client_id = id
 
+        trip = task.data.trip
+        trip_max = task.data.trip_max
+
         tasks = pickle.dumps(task)
 
-        to_pipeline = task.data.trip >= task.data.trip_max
+        to_pipeline = trip >= trip_max
+        active = trip < trip_max - 1 # If trip is < trip_max - 1, client can expect to get data back
+        # in this case, mark them as active so they wait to get data back rather then getting a new task
 
         if to_pipeline:
-            self.client_states[id] = CS.IDLE
-
             # Send finished task to pipeline
             self.publisher.publish(
                 routing_key = 'pipeline',
                 payload = tasks
             )
-            
-            # Tell main object we are ready for more data
-            self.publisher.publish(
-                routing_key = 'main',
-                payload = msg_constants.SENT
-            )
         else: # send to model
-            self.client_states[id] = CS.WAITING
-
             self.publisher.publish(
                 routing_key = 'model',
                 payload = tasks
+            )
+        
+        if active:
+            self.client_states[id] = CS.WAITING # Waiting to get data back from model
+        else:
+            self.client_states[id] = CS.IDLE # Waiting for a new task from pipeline
+            
+            # Ping main object to get more data
+            self.publisher.publish(
+                routing_key = 'main',
+                payload = msg_constants.SENT
             )
     
     @rabbitmq_callback
