@@ -4,3 +4,4 @@ gradio
 markupsafe
 pandas
 joblib
+jinja2
