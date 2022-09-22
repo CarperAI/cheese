@@ -1,14 +1,14 @@
 from atexit import register
-from backend.pipeline.iterable_dataset import IterablePipeline, InvalidDataException
-from backend.data import BatchElement
-from backend.client.gradio_client import GradioFront
+from cheese.pipeline.iterable_dataset import IterablePipeline, InvalidDataException
+from cheese.data import BatchElement
+from cheese.client.gradio_client import GradioFront
 
-from backend.api import CHEESE
+from cheese.api import CHEESE
 
 from dataclasses import dataclass
 
 from PIL import Image
-from backend.utils.img_utils import url2img
+from cheese.utils.img_utils import url2img
 
 import gradio as gr
 import datasets

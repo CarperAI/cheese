@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from backend.data import BatchElement
+from cheese.data import BatchElement
 
 @dataclass
 class TextCaptionBatchElement(BatchElement):

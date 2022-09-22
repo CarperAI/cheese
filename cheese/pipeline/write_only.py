@@ -5,8 +5,8 @@ from datasets import load_from_disk, Dataset
 
 import numpy as np
 
-from backend.pipeline.datasets import DatasetPipeline
-from backend.data import BatchElement
+from cheese.pipeline.datasets import DatasetPipeline
+from cheese.data import BatchElement
 
 class WriteOnlyPipeline(DatasetPipeline):
     """

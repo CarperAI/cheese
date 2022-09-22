@@ -1,4 +1,4 @@
-from backend.data import BatchElement
+from cheese.data import BatchElement
 from dataclasses import dataclass
 
 """
@@ -14,7 +14,7 @@ class SentimentElement(BatchElement):
     model_label : str = None
     trip_max : int = 2 # -> Client -> Model -> Pipeline = two targets to visit before going back to pipeline
 
-from backend.pipeline.iterable_dataset import IterablePipeline
+from cheese.pipeline.iterable_dataset import IterablePipeline
 
 class SentimentPipeline(IterablePipeline):
     def preprocess(self, x):
@@ -27,7 +27,7 @@ class SentimentPipeline(IterablePipeline):
         row = {"text": data.text, "label": data.label, "model_label": data.model_label}
         if not data.error: self.post_row(row)
 
-from backend.models import BaseModel
+from cheese.models import BaseModel
 
 from transformers import pipeline
 
@@ -44,7 +44,7 @@ class SentimentModel(BaseModel):
         data.model_label = label
         return data
 
-from backend.client.gradio_client import GradioFront
+from cheese.client.gradio_client import GradioFront
 import gradio as gr
 
 class SentimentFront(GradioFront):
@@ -81,7 +81,7 @@ class SentimentFront(GradioFront):
         data : SentimentElement = task.data
         return [data.text] # Return list for gradio outputs
 
-from backend.api import CHEESE
+from cheese.api import CHEESE
 import time
 
 data = ["The goose went to the store and was very happy", "The goose went to the store and was very sad"]

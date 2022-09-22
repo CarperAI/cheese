@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from backend.data import BatchElement
+from cheese.data import BatchElement
 
 @dataclass
 class Task:
     """
-    Tasks to communicate between the components in the backend.
+    Tasks to communicate between the components in the cheese.
 
     :param data: The data contained in the task
     :type data: BatchElement

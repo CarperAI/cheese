@@ -2,12 +2,12 @@ from abc import abstractmethod
 
 from typing import Any, Iterable, Dict, Tuple, List, Callable
 
-from backend.data import BatchElement
-from backend.tasks import Task
-from backend.client.states import ClientState as CS
-from backend.client import ClientManager
-import backend.utils.msg_constants as msg_constants
-from backend.utils.rabbit_utils import rabbitmq_callback
+from cheese.data import BatchElement
+from cheese.tasks import Task
+from cheese.client.states import ClientState as CS
+from cheese.client import ClientManager
+import cheese.utils.msg_constants as msg_constants
+from cheese.utils.rabbit_utils import rabbitmq_callback
 
 import pickle
 import joblib
@@ -258,7 +258,7 @@ class GradioFront:
 
     def set_manager(self, manager : GradioClientManager):
         """
-        Set the manager for the frontend. This is how it will communicate with backend. Must be set before calling launch
+        Set the manager for the frontend. This is how it will communicate with cheese. Must be set before calling launch
         """
         self.manager = manager
     

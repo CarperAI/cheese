@@ -3,7 +3,7 @@ from typing import Iterable, Dict, Any
 
 from datasets import Dataset
 
-from backend.pipeline import Pipeline
+from cheese.pipeline import Pipeline
 
 class DatasetPipeline(Pipeline):
     """

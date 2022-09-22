@@ -3,11 +3,11 @@ from typing import List
 import pickle
 
 from pyparsing import ParseExpression
-from backend.data import BatchElement
-from backend.tasks import Task
+from cheese.data import BatchElement
+from cheese.tasks import Task
 
 from b_rabbit import BRabbit
-from backend.utils.rabbit_utils import rabbitmq_callback
+from cheese.utils.rabbit_utils import rabbitmq_callback
 
 class Pipeline:
     """
