@@ -5,7 +5,7 @@ BatchElements and Tasks
 The components of CHEESE process data in the form of the BatchElement object. These are communicated
 between the components using the Task object, which essentially serves as a container for some BatchElement.
 
-.. autoclass:: backend.data.BatchElement
+.. autoclass:: cheese.data.BatchElement
     :members:
 
 As an explanation for the trip attribute to BatchElement, consider the following cases. Suppose we want user to 
@@ -16,5 +16,5 @@ the original data. We'd set trip_max of 3 for this since the data is visiting us
 Once trip becomes trip_max, the data is sent back to pipeline. In the case where it is 2, then the data 
 will be sent back to the pipeline from the model.
 
-.. autoclass:: backend.tasks.Task
+.. autoclass:: cheese.tasks.Task
     :members:

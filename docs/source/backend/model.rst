@@ -3,5 +3,5 @@
 Model In The Loop
 ******************
 
-.. autoclass:: backend.models.BaseModel
+.. autoclass:: cheese.models.BaseModel
    :members:

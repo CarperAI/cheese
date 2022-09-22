@@ -14,7 +14,7 @@ default for all their values. Specifiying None suffices.
 
 .. code-block:: python
 
-    from backend.data import BatchElement
+    from cheese.data import BatchElement
     from dataclasses import dataclass
 
     @dataclass
@@ -37,7 +37,7 @@ This also handles saving for you.
 
 .. code-block:: python
 
-    from backend.pipeline.iterable_dataset import IterablePipeline
+    from cheese.pipeline.iterable_dataset import IterablePipeline
 
     class SentimentPipeline(IterablePipeline):
         def preprocess(self, x):
@@ -64,7 +64,7 @@ keep in mind that main() and present() are expected to return lists, and returni
 
 .. code-block:: python
 
-    from backend.client.gradio_client import GradioFront
+    from cheese.client.gradio_client import GradioFront
     import gradio as gr
 
     class SentimentFront(GradioFront):
@@ -107,7 +107,7 @@ will run the experiment on two strings and post the results to a folder called s
 
 .. code-block:: python
 
-    from backend.api import CHEESE
+    from cheese.api import CHEESE
     import time
 
     data = ["The goose went to the store and was very happy", "The goose went to the store and was very sad"]
@@ -150,7 +150,7 @@ to construction of the CHEESE object is specifiying a model class.
         model_label : str = None
         trip_max : int = 2 # -> Client -> Model -> Pipeline = two targets to visit before going back to pipeline
     
-    from backend.models import BaseModel
+    from cheese.models import BaseModel
     from transformers import pipeline
 
     class SentimentModel(BaseModel):

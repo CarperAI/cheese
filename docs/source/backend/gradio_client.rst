@@ -8,11 +8,11 @@ However, writing your own frontend may not be the fastest path to running your e
 It is reccomended to instead use the GradioClientManager and to create your frontend in Gradio.
 If you should choose to do this, the GradioFront object is all you will need for the frontend of your experiment.
 
-.. autoclass:: backend.client.ClientManager
+.. autoclass:: cheese.client.ClientManager
     :members:
 
-.. autoclass:: backend.client.gradio_client.GradioClientManager
+.. autoclass:: cheese.client.gradio_client.GradioClientManager
     :members:
 
-.. autoclass:: backend.client.gradio_client.GradioFront
+.. autoclass:: cheese.client.gradio_client.GradioFront
     :members:
