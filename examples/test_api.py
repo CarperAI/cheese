@@ -1,6 +1,6 @@
-from backend.pipeline.text_captions import TextCaptionPipeline
-from backend.client.text_captions import TextCaptionClient
-from backend.api import CHEESE
+from cheese.pipeline.text_captions import TextCaptionPipeline
+from cheese.client.text_captions import TextCaptionClient
+from cheese.api import CHEESE
 
 from datasets import load_from_disk
 import time

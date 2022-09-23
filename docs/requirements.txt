@@ -1,0 +1,7 @@
+sphinx==4.0.0
+sphinx_rtd_theme
+gradio
+b_rabbit
+datasets
+webdataset
+joblib

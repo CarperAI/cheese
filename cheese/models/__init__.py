@@ -2,11 +2,11 @@ from abc import abstractmethod
 
 import pickle
 
-from backend.data import BatchElement
-from backend.tasks import Task
+from cheese.data import BatchElement
+from cheese.tasks import Task
 
 from b_rabbit import BRabbit
-from backend.utils.rabbit_utils import rabbitmq_callback
+from cheese.utils.rabbit_utils import rabbitmq_callback
 
 class BaseModel:
     def __init__(self):
@@ -37,7 +37,8 @@ class BaseModel:
     @abstractmethod
     def process(self, data : BatchElement) -> BatchElement:
         """
-        Process BatchElement with model
+        Process BatchElement with model. Assume the inputs to the model are in the BatchElement,
+        then use them to create some outputs. The outputs should be added to the BatchElement before it is returned.
         """
         pass
 

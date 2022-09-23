@@ -1,7 +1,7 @@
-from backend.client import Client, ClientFront
-from backend.tasks import Task
-from backend.client.states import ClientState as CS
-from backend.data.text_captions import TextCaptionBatchElement
+from cheese.client import Client, ClientFront
+from cheese.tasks import Task
+from cheese.client.states import ClientState as CS
+from cheese.data.text_captions import TextCaptionBatchElement
 
 import gradio as gr
 

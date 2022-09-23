@@ -5,13 +5,19 @@ from datasets import load_from_disk, Dataset
 
 import numpy as np
 
-from backend.pipeline.datasets import DatasetPipeline
-from backend.data import BatchElement
+from cheese.pipeline.datasets import DatasetPipeline
+from cheese.data import BatchElement
 
 class WriteOnlyPipeline(DatasetPipeline):
     """
     Base pipeline for any task that involves giving users empty data but writing concrete results
     (i.e. prompting model generation, then receiving feedback)
+
+    :param write_path: The path to write the result dataset to
+    :type write_path: str
+
+    :param force_new: Whether to force a new dataset to be created, even if one already exists at the write path
+    :type force_new: bool
     """
     def __init__(self, write_path : str, force_new : bool = False):
         super().__init__()

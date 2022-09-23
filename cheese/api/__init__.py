@@ -1,13 +1,13 @@
 from re import I
 from typing import ClassVar, Iterable, Tuple, Dict, Any
 
-from backend.client import ClientManager
-from backend.client.gradio_client import GradioClientManager
-from backend.pipeline import Pipeline
-from backend.models import BaseModel
+from cheese.client import ClientManager
+from cheese.client.gradio_client import GradioClientManager
+from cheese.pipeline import Pipeline
+from cheese.models import BaseModel
 
-import backend.utils.msg_constants as msg_constants
-from backend.utils.rabbit_utils import rabbitmq_callback
+import cheese.utils.msg_constants as msg_constants
+from cheese.utils.rabbit_utils import rabbitmq_callback
 
 from b_rabbit import BRabbit
 

@@ -1,8 +1,8 @@
-from backend.pipeline.wav_folder import WavFolderPipeline
-from backend.data import BatchElement
-from backend.client.gradio_client import GradioFront
+from cheese.pipeline.wav_folder import WavFolderPipeline
+from cheese.data import BatchElement
+from cheese.client.gradio_client import GradioFront
 
-from backend.api import CHEESE
+from cheese.api import CHEESE
 
 from datasets import Dataset
 import gradio as gr

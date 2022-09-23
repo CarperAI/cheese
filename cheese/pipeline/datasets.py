@@ -3,11 +3,11 @@ from typing import Iterable, Dict, Any
 
 from datasets import Dataset
 
-from backend.pipeline import Pipeline
+from cheese.pipeline import Pipeline
 
 class DatasetPipeline(Pipeline):
     """
-    Base class for any pipeline that writes results to a datasets.Dataset object
+    Base class for any pipeline thats data destination is a datasets.Dataset object
     """
     def __init__(self):
         super().__init__()
@@ -16,6 +16,10 @@ class DatasetPipeline(Pipeline):
         self.res_dataset : Dataset = None
 
     def save_dataset(self):
+        """
+        Saves the result dataset to the write path (assuming it has been specified by subclass).
+        Does nothing if there is no data to save yet.
+        """
         if self.res_dataset is None:
             return
         if self.write_path is None:
@@ -25,7 +29,10 @@ class DatasetPipeline(Pipeline):
 
     def add_row_to_dataset(self, row : Dict[str, Any]):
         """
-        Add single row to result dataset
+        Add single row to result dataset and then saves.
+
+        :param row: The row, as a dictionary, to add to the result dataset
+        :type row: Dict[str, Any]
         """
         if self.res_dataset is None:
             row = {key : [row[key]] for key in row}

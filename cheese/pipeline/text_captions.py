@@ -4,8 +4,8 @@ import pickle
 
 from typing import List
 
-from backend.pipeline import Pipeline
-from backend.data.text_captions import TextCaptionBatchElement
+from cheese.pipeline import Pipeline
+from cheese.data.text_captions import TextCaptionBatchElement
 
 class TextCaptionPipeline(Pipeline):
     """

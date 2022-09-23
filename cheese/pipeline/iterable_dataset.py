@@ -7,9 +7,9 @@ import pandas as pd
 import joblib
 import numpy as np
 
-from backend.pipeline.datasets import DatasetPipeline
-from backend.data import BatchElement
-from backend.utils import safe_mkdir
+from cheese.pipeline.datasets import DatasetPipeline
+from cheese.data import BatchElement
+from cheese.utils import safe_mkdir
 
 class IterablePipeline(DatasetPipeline):
     """

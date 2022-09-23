@@ -1,10 +1,10 @@
 from abc import abstractmethod
-from backend.data import BatchElement
+from cheese.data import BatchElement
 
-from backend.tasks import Task
-from backend.client.states import ClientState as CS
-import backend.utils.msg_constants as msg_constants
-from backend.utils.rabbit_utils import rabbitmq_callback
+from cheese.tasks import Task
+from cheese.client.states import ClientState as CS
+import cheese.utils.msg_constants as msg_constants
+from cheese.utils.rabbit_utils import rabbitmq_callback
 
 import pickle
 
