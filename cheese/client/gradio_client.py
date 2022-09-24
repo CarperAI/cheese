@@ -5,7 +5,7 @@ from typing import Any, Iterable, Dict, Tuple, List, Callable
 from cheese.data import BatchElement
 from cheese.tasks import Task
 from cheese.client.states import ClientState as CS
-from cheese.client import ClientManager
+from cheese.client import ClientManager, ClientStatistics
 import cheese.utils.msg_constants as msg_constants
 from cheese.utils.rabbit_utils import rabbitmq_callback
 
@@ -36,8 +36,9 @@ class GradioClientManager(ClientManager):
         self.id_pass : Dict[int, int] = {} # [Client ID, Password]
         self.client_ids : Iterable[int] = []
 
-        self.client_tasks : Dict[int, Iterable[Task]]= {} # 
-        self.client_states : Dict[int, CS] = {}
+        self.client_tasks : Dict[int, Iterable[Task]]= {} # A stack of tasks for each client
+        self.client_states : Dict[int, CS] = {} # The state of each client
+        self.client_statistics : Dict[int, ClientStatistics] = {} # Stats on each client
 
         self.front : GradioFront = None
 
@@ -84,6 +85,7 @@ class GradioClientManager(ClientManager):
         del self.client_tasks[id]
         del self.client_states[id]
         del self.id_pass[id]
+        del self.client_statistics[id]
 
     def query_client(self, id : int, password : int):
         if id in self.id_pass:
@@ -102,7 +104,12 @@ class GradioClientManager(ClientManager):
         """
 
         if not id in self.id_pass:
-            raise Exception("Awaiting task for ID that is not registered as a client")
+            # Possible that client was registered but is no longer registered
+            # In this case we want to send a terminate signal
+            try:
+                return Task(terminate = True)
+            except:
+                raise Exception("Error: Awaiting task for client that is not registered. Attempted to send terminate signal but failed.")
 
         while True:
             if self.client_tasks[id]:
@@ -117,6 +124,9 @@ class GradioClientManager(ClientManager):
         
         :param task: The finished task
         """
+
+        if not id in self.id_pass:
+            raise Exception("Error: Submitting task for client that is not registered")
 
         self.queue_task(id, task)
 
