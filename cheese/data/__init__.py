@@ -16,8 +16,16 @@ class BatchElement:
 
     :param error: A flag for frontend to mark the data as being erroneous (i.e. if it couldn't be labelled properly)
     :type error: bool
+
+    :param start_time: Timestamp for when data was first given to a client
+    :type start_time: float
+
+    :param end_time: Timestamp for when data was sent back to pipeline
+    :type end_time: float
     """
     client_id : int = -1
     trip : int = 0 
     trip_max : int = 1 
-    error : bool = False 
+    error : bool = False
+    start_time : float = -1.0
+    end_time : float = -1.0
