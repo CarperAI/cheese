@@ -19,14 +19,15 @@ class ClientStatistics:
     Class to store client statistics
     """
     total_time : float = 0.0 # Total time spent processing data
-    total_data : int = 0 # Total number of data elements processed
+    total_tasks : int = 0 # Total number of tasks done by user
 
-    @classmethod
-    def avg_time(self):
+    def avg_time(self) -> float:
         """
         Get average time spent processing data.
         """
-        return self.total_time / self.total_data
+        if self.total_tasks == 0: return 0
+
+        return self.total_time / self.total_tasks
 
 class ClientManager:
     def __init__(self):

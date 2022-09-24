@@ -78,6 +78,7 @@ class GradioClientManager(ClientManager):
 
         self.id_pass[id] = pwd
         self.client_ids.append(id)
+        self.client_statistics[id] = ClientStatistics()
 
         return id, pwd
 
@@ -113,7 +114,10 @@ class GradioClientManager(ClientManager):
 
         while True:
             if self.client_tasks[id]:
-                return self.client_tasks[id].pop(0)
+                new_task : Task = self.client_tasks[id].pop(0)
+                new_task.data.start_time = time.time() # Mark time stamp for when task was sent to client
+                return new_task
+
             time.sleep(0.5)
     
     def submit_task(self, id : int, task : Task):
@@ -127,6 +131,14 @@ class GradioClientManager(ClientManager):
 
         if not id in self.id_pass:
             raise Exception("Error: Submitting task for client that is not registered")
+
+        # If the task is going back to pipline, we want to mark the time stamp for this
+        to_pipeline = (task.data.trip >= task.data.trip_max)
+        if to_pipeline:
+            task.data.end_time = time.time()
+            # Update our user stats with this
+            self.client_statistics[id].total_time += task.data.end_time - task.data.start_time
+            self.client_statistics[id].total_tasks += 1
 
         self.queue_task(id, task)
 
