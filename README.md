@@ -1,5 +1,14 @@
+[docs-image]: https://readthedocs.org/projects/cheese1/badge/?version=latest
+[docs-url]: https://cheese1.readthedocs.io/en/latest/?badge=latest
+
 # Coadaptive Harness for Effective Evaluation, Steering, & Enhancement
 Used for adaptive human in the loop evaluation of language and embedding models.
+
+---------------------------------------------------------------------------------------
+
+[![Docs Status][docs-image]][docs-url]
+
+**[Documentation](https://cheese1.readthedocs.io)**
 
 # Getting Started
 You need rabbitmq for the messaging system in the backend. It can be installed easily with conda as follows:
