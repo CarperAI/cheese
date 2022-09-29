@@ -1,7 +1,7 @@
 from re import I
 from typing import ClassVar, Iterable, Tuple, Dict, Any
 
-from cheese.client import ClientManager
+from cheese.client import ClientManager, ClientStatistics
 from cheese.client.gradio_client import GradioClientManager
 from cheese.pipeline import Pipeline
 from cheese.models import BaseModel
@@ -107,6 +107,42 @@ class CHEESE:
         self.clients += 1
         self.draw() # pre-emptively draw a task for the client to pick up
         return id, pwd
+    
+    def remove_client(self, id : int):
+        """
+        Remove client with given id.
+
+        :param id: A unique identifying number for the client.
+        :type id: int
+        """
+        self.client_manager.remove_client(id)
+        self.clients -= 1
+
+    def get_stats(self) -> Dict:
+        """
+        Get various statistics in the form of a dictionary.
+
+        :return: Dictionary containing following statistics:
+            - num_clients: Number of clients connected to CHEESE
+            - num_busy_clients: Number of clients currently working on a task
+            - num_tasks: Number of tasks completed overall
+            - client_stats: Dictionary of client statistics
+        """
+        client_stats = self.client_manager.client_statistics
+
+        # Get num_tasks from all clients
+        num_tasks = 0
+        for client in client_stats:
+            stat : ClientStatistics = client_stats[client]
+            num_tasks += stat.total_tasks
+
+        return {
+            'num_clients' : self.clients,
+            'num_busy_clients' : self.busy_clients,
+            'num_tasks' : num_tasks,
+            'client_stats' : client_stats
+        }
+    
 
     def draw(self):
         """

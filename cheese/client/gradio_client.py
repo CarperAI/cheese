@@ -5,7 +5,7 @@ from typing import Any, Iterable, Dict, Tuple, List, Callable
 from cheese.data import BatchElement
 from cheese.tasks import Task
 from cheese.client.states import ClientState as CS
-from cheese.client import ClientManager
+from cheese.client import ClientManager, ClientStatistics
 import cheese.utils.msg_constants as msg_constants
 from cheese.utils.rabbit_utils import rabbitmq_callback
 
@@ -36,8 +36,9 @@ class GradioClientManager(ClientManager):
         self.id_pass : Dict[int, int] = {} # [Client ID, Password]
         self.client_ids : Iterable[int] = []
 
-        self.client_tasks : Dict[int, Iterable[Task]]= {} # 
-        self.client_states : Dict[int, CS] = {}
+        self.client_tasks : Dict[int, Iterable[Task]]= {} # A stack of tasks for each client
+        self.client_states : Dict[int, CS] = {} # The state of each client
+        self.client_statistics : Dict[int, ClientStatistics] = {} # Stats on each client
 
         self.front : GradioFront = None
 
@@ -77,6 +78,7 @@ class GradioClientManager(ClientManager):
 
         self.id_pass[id] = pwd
         self.client_ids.append(id)
+        self.client_statistics[id] = ClientStatistics()
 
         return id, pwd
 
@@ -84,6 +86,7 @@ class GradioClientManager(ClientManager):
         del self.client_tasks[id]
         del self.client_states[id]
         del self.id_pass[id]
+        del self.client_statistics[id]
 
     def query_client(self, id : int, password : int):
         if id in self.id_pass:
@@ -102,11 +105,19 @@ class GradioClientManager(ClientManager):
         """
 
         if not id in self.id_pass:
-            raise Exception("Awaiting task for ID that is not registered as a client")
+            # Possible that client was registered but is no longer registered
+            # In this case we want to send a terminate signal
+            try:
+                return Task(terminate = True)
+            except:
+                raise Exception("Error: Awaiting task for client that is not registered. Attempted to send terminate signal but failed.")
 
         while True:
             if self.client_tasks[id]:
-                return self.client_tasks[id].pop(0)
+                new_task : Task = self.client_tasks[id].pop(0)
+                new_task.data.start_time = time.time() # Mark time stamp for when task was sent to client
+                return new_task
+
             time.sleep(0.5)
     
     def submit_task(self, id : int, task : Task):
@@ -117,6 +128,17 @@ class GradioClientManager(ClientManager):
         
         :param task: The finished task
         """
+
+        if not id in self.id_pass:
+            raise Exception("Error: Submitting task for client that is not registered")
+
+        # If the task is going back to pipline, we want to mark the time stamp for this
+        to_pipeline = (task.data.trip >= task.data.trip_max)
+        if to_pipeline:
+            task.data.end_time = time.time()
+            # Update our user stats with this
+            self.client_statistics[id].total_time += task.data.end_time - task.data.start_time
+            self.client_statistics[id].total_tasks += 1
 
         self.queue_task(id, task)
 

@@ -11,6 +11,24 @@ import pickle
 from b_rabbit import BRabbit
 import gradio as gr
 
+from dataclasses import dataclass
+
+@dataclass
+class ClientStatistics:
+    """
+    Class to store client statistics
+    """
+    total_time : float = 0.0 # Total time spent processing data
+    total_tasks : int = 0 # Total number of tasks done by user
+
+    def avg_time(self) -> float:
+        """
+        Get average time spent processing data.
+        """
+        if self.total_tasks == 0: return 0
+
+        return self.total_time / self.total_tasks
+
 class ClientManager:
     def __init__(self):
         # <id : int, Client>

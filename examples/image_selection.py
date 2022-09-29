@@ -162,6 +162,16 @@ if __name__ == "__main__":
     print(cheese.create_client(15))
     print(cheese.create_client(71))
 
+    # After 3 total tasks are done, print stats on users
+    while cheese.get_stats()["num_tasks"] < 3:
+        time.sleep(1)
+
+    client_stats = cheese.get_stats()["client_stats"]
+    print(client_stats[15])
+    print(client_stats[71])
+
+    print(client_stats[15].avg_time())
+
     while not cheese.finished:
         time.sleep(2)
     
