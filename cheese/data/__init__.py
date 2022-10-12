@@ -39,3 +39,12 @@ class BatchElement:
         Calling this sets trip to trip_max, resulting in data immediately being sent to pipeline.
         """
         self.trip = self.trip_max
+    
+    def total_time(self):
+        """
+        Returns the time taken for this data to be processed, in seconds. Returns -1 if either timestamps are unset.
+        """
+        if self.end_time == -1.0 or self.start_time == -1.0:
+            return -1.0
+
+        return self.end_time - self.start_time
