@@ -289,8 +289,8 @@ class GradioFront:
         Returns basic components for login screen
         """
         gr.Textbox("Welcome to CHEESE!", show_label = False, interactive = False).style(rounded = False, border = False)
-        idbox = gr.Textbox(label = "User ID", interactive = True)
-        pwdbox = gr.Textbox(label = "User Password", interactive = True)
+        idbox = gr.Textbox(label = "User ID", interactive = True, max_lines=1)
+        pwdbox = gr.Textbox(label = "User Password", interactive = True, max_lines=1)
         submit = gr.Button("Submit")
         error = gr.Textbox("Invalid ID or password", visible = False).style(rounded = False, border = False)
         
