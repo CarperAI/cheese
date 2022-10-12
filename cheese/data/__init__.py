@@ -17,7 +17,7 @@ class BatchElement:
     :param trip_max: How many targets can touch/access this data before it goes back to pipeline to be posted
     :type trip_max: int
 
-    :param error: A flag for frontend to mark the data as being erroneous (i.e. if it couldn't be labelled properly)
+    :param error: A flag for frontend to mark the data as being erroneous (i.e. if it couldn't be labelled properly). While it doesn't do this by default, it is reccomended you account for errors in Pipeline.post()
     :type error: bool
 
     :param start_time: Timestamp for when data was first given to a client
@@ -33,3 +33,9 @@ class BatchElement:
     error : bool = False
     start_time : float = -1.0
     end_time : float = -1.0
+
+    def early_finish(self):
+        """
+        Calling this sets trip to trip_max, resulting in data immediately being sent to pipeline.
+        """
+        self.trip = self.trip_max
