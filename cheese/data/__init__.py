@@ -11,6 +11,9 @@ class BatchElement:
     :param trip: How many targets have touched/accessed this data so far
     :type trip: int
 
+    :param trip_start: First target for data ("client" or "model") after it is queued by pipeline. Defaults to "client".
+    :type trip_start: str
+
     :param trip_max: How many targets can touch/access this data before it goes back to pipeline to be posted
     :type trip_max: int
 
@@ -25,6 +28,7 @@ class BatchElement:
     """
     client_id : int = -1
     trip : int = 0 
+    trip_start : str = "client" 
     trip_max : int = 1 
     error : bool = False
     start_time : float = -1.0
