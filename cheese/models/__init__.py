@@ -24,6 +24,12 @@ class BaseModel:
 
         self.task_queue = []
         self.working = False # Is task loop running?
+    
+    def get_stats(self) -> dict:
+        """
+        Get statistics about the model.
+        """
+        return {"num_tasks": len(self.task_queue)}
 
     def init_connection(self, connection : BRabbit):
         """

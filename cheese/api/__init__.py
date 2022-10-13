@@ -140,9 +140,9 @@ class CHEESE:
             'num_clients' : self.clients,
             'num_busy_clients' : self.busy_clients,
             'num_tasks' : num_tasks,
-            'client_stats' : client_stats
+            'client_stats' : client_stats,
+            'model_stats' : self.model.get_stats()
         }
-    
 
     def draw(self):
         """
