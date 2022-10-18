@@ -114,7 +114,6 @@ class GenerativePipeline(WriteOnlyPipeline):
                 new_elems : Iterable[BatchElement] = self.generate(model_input)
                 self.buffer += new_elems
                 self.buffer_ready = True
-                print("hi 2")
             except StopIteration:
                 self.iterator_exhausted = True
                 break

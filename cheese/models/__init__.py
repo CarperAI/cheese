@@ -59,7 +59,6 @@ class BaseModel:
         self.subscriber_client.subscribe_on_thread()
         self.subscriber_pipeline.subscribe_on_thread()
 
-
     @abstractmethod
     def process(self, data : Iterable[BatchElement]) -> Iterable[BatchElement]:
         """
@@ -88,8 +87,7 @@ class BaseModel:
                 tasks[i].data = data
             
             while tasks:
-                self.queue_task(tasks[0])
-                tasks = tasks[1:]
+                self.queue_task(tasks.pop(0))
 
         self.working = False
 
@@ -116,8 +114,6 @@ class BaseModel:
     @rabbitmq_callback
     def dequeue_task(self, tasks : str):
         """Check inbound queue for completed task."""
-
-        print("dequeue checkpoint")
         
         task = pickle.loads(tasks)
         task.data.trip += 1

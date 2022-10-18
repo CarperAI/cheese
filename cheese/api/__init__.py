@@ -180,7 +180,7 @@ class CHEESE:
         :param access_stat: Some callable that returns a stat we want to see progress for (i.e. as an integer).
         :type access_stat: Callable[, int]
 
-        :param call_every: Some callable that we want to call every check_every seconds
+        :param call_every: Some callable that we want to call every time stat is updated.
         :type call_every: Callable[, None]
 
         :param check_every: How often to check for updates to the stat in seconds.
