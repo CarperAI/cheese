@@ -1,5 +1,4 @@
-from re import I
-from typing import ClassVar, Iterable, Tuple, Dict, Any
+from typing import ClassVar, Iterable, Tuple, Dict, Any, Callable
 
 from cheese.client import ClientManager, ClientStatistics
 from cheese.client.gradio_client import GradioClientManager
@@ -10,6 +9,8 @@ import cheese.utils.msg_constants as msg_constants
 from cheese.utils.rabbit_utils import rabbitmq_callback
 
 from b_rabbit import BRabbit
+from tqdm import tqdm
+import time
 
 # Master object for CHEESE
 class CHEESE:
@@ -30,15 +31,20 @@ class CHEESE:
 
     :param gradio: Whether to use gradio or custom frontend
     :type gradio: bool
+
+    :param draw_always: If true, doesn't check for free clients before drawing a task.
+        This is useful if you are trying to feed data directly to model and don't need to worry about having free clients.
+    :type draw_always: bool
     """
     def __init__(
         self,
         pipeline_cls, client_cls = None, model_cls = None,
         pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
-        gradio : bool = True
+        gradio : bool = True, draw_always : bool = False
         ):
 
         self.gradio = gradio
+        self.draw_always = draw_always
 
         # Initialize rabbit MQ server
         self.connection = BRabbit(host='localhost', port=5672)
@@ -127,6 +133,8 @@ class CHEESE:
             - num_busy_clients: Number of clients currently working on a task
             - num_tasks: Number of tasks completed overall
             - client_stats: Dictionary of client statistics
+            - model_stats: Dictionary of model statistics
+            - pipeline_stats: Dictionary of pipeline statistics
         """
         client_stats = self.client_manager.client_statistics
 
@@ -141,15 +149,17 @@ class CHEESE:
             'num_busy_clients' : self.busy_clients,
             'num_tasks' : num_tasks,
             'client_stats' : client_stats,
-            'model_stats' : self.model.get_stats()
+            'model_stats' : self.model.get_stats() if self.model else None,
+            'pipeline_stats' : self.pipeline.get_stats()
         }
 
     def draw(self):
         """
         Draws a sample from data pipeline and creates a task to send to clients. Does nothing if no free clients.
+        This check if overriden if draw_always is set to True.
         """
 
-        if self.busy_clients >= self.clients:
+        if not self.draw_always and self.busy_clients >= self.clients:
             return
 
         exhausted = not self.pipeline.queue_task()
@@ -158,6 +168,32 @@ class CHEESE:
             #  finished, so we can stop
             self.finished = True
 
+
+    def progress_bar(self, max_tasks : int, access_stat : Callable, call_every : Callable = None, check_every : float = 1.0):
+        """
+        This function shows a progress bar via tqdm some given stat. Blocks execution.
+        Not recommended for interactive use.
+
+        :param max_tasks: The maximum number of tasks to show progress to before returning
+        :type max_tasks: int
+
+        :param access_stat: Some callable that returns a stat we want to see progress for (i.e. as an integer).
+        :type access_stat: Callable[, int]
+
+        :param call_every: Some callable that we want to call every check_every seconds
+        :type call_every: Callable[, None]
+
+        :param check_every: How often to check for updates to the stat in seconds.
+        :type check_every: float
+        """
+
+        for i in tqdm(range(max_tasks)):
+            current_stat = access_stat()
+            while True:
+                if call_every: call_every()
+                if current_stat != access_stat():
+                    break
+                time.sleep(check_every)
 
     
 
