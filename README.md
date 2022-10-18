@@ -19,6 +19,8 @@ Then start the server (should do this on a different screen/window)
 ```
 rabbitmq-server
 ```
+Note that because of how rabbitmq works, it is possible several items may remain in the queue after your application using CHEESE has terminated. If the server is not shut down and restarted, then subsequent uses of CHEESE may end up drawing from items that were placed in the queue in a previous run.  
+  
 As an example, the following script runs an image selection task, where two images from LAION-art dataset are presented and the labeller is asked to choose one.
 ```
 python -m examples.image_selection
