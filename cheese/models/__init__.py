@@ -24,6 +24,8 @@ class BaseModel:
 
         self.task_queue = []
         self.working = False # Is task loop running?
+
+        self.batch_size = batch_size
     
     def get_stats(self) -> dict:
         """
@@ -40,14 +42,23 @@ class BaseModel:
             publisher_name = 'model'
         )
 
-        self.subscriber = connection.EventSubscriber(
+        self.subscriber_client = connection.EventSubscriber(
             b_rabbit = connection,
             routing_key = 'model',
             publisher_name = 'client',
             event_listener = self.dequeue_task
         )
 
-        self.subscriber.subscribe_on_thread()
+        self.subscriber_pipeline = connection.EventSubscriber(
+            b_rabbit = connection,
+            routing_key = 'model',
+            publisher_name = 'pipeline',
+            event_listener = self.dequeue_task
+        )
+
+        self.subscriber_client.subscribe_on_thread()
+        self.subscriber_pipeline.subscribe_on_thread()
+
 
     @abstractmethod
     def process(self, data : Iterable[BatchElement]) -> Iterable[BatchElement]:
@@ -105,6 +116,8 @@ class BaseModel:
     @rabbitmq_callback
     def dequeue_task(self, tasks : str):
         """Check inbound queue for completed task."""
+
+        print("dequeue checkpoint")
         
         task = pickle.loads(tasks)
         task.data.trip += 1
