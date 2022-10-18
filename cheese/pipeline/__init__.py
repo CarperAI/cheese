@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List
+from typing import List, Dict
 import pickle
 
 from pyparsing import ParseExpression
@@ -43,6 +43,13 @@ class Pipeline:
 
         self.subscriber.subscribe_on_thread()
         self.model_subscriber.subscribe_on_thread()
+    
+    @abstractmethod
+    def get_stats(self) -> Dict:
+        """
+        Returns statistics about pipeline. Likely different for any given Pipeline
+        """
+        pass
 
     @abstractmethod
     def exhausted(self) -> bool:
