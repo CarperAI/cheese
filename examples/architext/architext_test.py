@@ -8,6 +8,7 @@ from examples.architext.architext_util import prompt_to_layout
 
 import gradio as gr
 import json
+import random
 import pickle
 import time
 import torch
@@ -22,6 +23,8 @@ class ArchitextBatchElement(BatchElement):
     result : Dict = None  # { image: PIL.Image.Image, layout: str, layout_after_removed: str }
     feedback : str = ""
     score : int = 0
+    rule : str = None
+    rule_score : str = None
 
     trip_max : int = 3 # data -> client -> model -> client => 3 targets in trip
 
@@ -37,7 +40,9 @@ class ArchitextPipeline(WriteOnlyPipeline):
                 "creativity" : data.creativity,
                 "result" : pickle.dumps(data.result),
                 "feedback" : data.feedback,
-                "score" : int(data.score)
+                "score" : int(data.score),
+                "rule" : data.rule,
+                "rule_score" : data.rule_score
             }
         )
 
@@ -46,7 +51,7 @@ class ArchitextModel(BaseModel):
     def __init__(self):
         super().__init__()
 
-        self.model = AutoModelForCausalLM.from_pretrained("examples/architext/architext_model")
+        self.model = AutoModelForCausalLM.from_pretrained("architext/gptj-162M")
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
         self.device = "cuda:0"
@@ -60,12 +65,25 @@ class ArchitextModel(BaseModel):
 
 class ArchitextFront(GradioFront):
     def main(self):
+        rules = [
+            "Spaces are allocated appropriately with respect to living conditions.",
+            "There is a pronounced space around which the design is structured.",
+            "Spaces in the design are functionally coherent.",
+            "The design is simple for its conditions.",
+            "The design contains no seperated (inaccessible) spaces.",
+            "The design is plausible.",
+            "The design makes sense."
+        ]
+        rule_string = rules[random.randint(0, 6)]
+
         with gr.Row():
             with gr.Column():
                 prompt = gr.Textbox(label = "Prompt")
                 creativity = gr.Radio(choices = ["Low", "Medium", "High"], label = "Creativity", value = "Low")
                 feedback = gr.Textbox(label = "Feedback on Generation", interactive = False, value = " ")
                 rating = gr.Slider(label = "Generation Rating", minimum = 0, maximum = 10, step = 1, interactive = False,  value = 0)
+                rule = gr.Textbox(value = rule_string, interactive = False, visible = False)
+                rule_score = gr.Radio(choices = ["strongly agree", "agree", "neutral", "disagree", "strongly disagree"], label = rule_string, interactive = False, value = [])
                 spaces_to_remove = gr.CheckboxGroup(label = "Rooms to delete (ordered from top left to bottom right)", interactive = False, value = None, choices=[])
 
             with gr.Column():
@@ -74,18 +92,18 @@ class ArchitextFront(GradioFront):
 
         self.wrap_event(submit.click)(
             self.response, 
-            inputs = [prompt, creativity, feedback, rating, spaces_to_remove],
-            outputs = [img, prompt, creativity, feedback, rating, spaces_to_remove]
+            inputs = [prompt, creativity, feedback, rating, rule, rule_score, spaces_to_remove],
+            outputs = [img, prompt, creativity, feedback, rating, rule, rule_score, spaces_to_remove]
         )
         
-        return [img, prompt, creativity, feedback, rating, spaces_to_remove]
+        return [img, prompt, creativity, feedback, rating, rule, rule_score, spaces_to_remove]
     
     def receive(self, *inp):
         id, task, *inp = inp
         prompting = task.data.result is None # Must be prompting if no image visible
         if ((inp[0] == "" or inp[1] is None) and prompting) or ((inp[2] == "" or inp[3] is None) and not prompting):
             raise InvalidInputException(*inp)
-        task.data.prompt, task.data.creativity, task.data.feedback, task.data.score, spaces_removed = inp
+        task.data.prompt, task.data.creativity, task.data.feedback, task.data.score, task.data.rule, task.data.rule_score, spaces_removed = inp
 
         spaces_removed = self.space_names_title_case_to_camel_case(spaces_removed)
 
@@ -122,6 +140,8 @@ class ArchitextFront(GradioFront):
             creativity = gr.update(interactive = True)
             feedback = gr.update(interactive = False, value = " ", visible = False)
             rating = gr.update(interactive = False, value = 0, visible = False)
+            rule = gr.update(interactive = False, visible = False)
+            rule_score = gr.update(interactive = False, value = [], visible = False)
             spaces_to_remove = gr.update(interactive = False,
                                          choices = self.space_names_camel_case_to_title_case(space_names),
                                          value = [], visible = False)
@@ -130,6 +150,8 @@ class ArchitextFront(GradioFront):
             creativity = gr.update(interactive = False)
             feedback = gr.update(interactive = True, visible = True)
             rating = gr.update(interactive = True, visible = True)
+            rule = gr.update(interactive = False, visible = False)
+            rule_score = gr.update(interactive = True, visible = True)
 
             if len(space_names) > 0:
                 spaces_to_remove = gr.update(interactive = True,
@@ -140,7 +162,7 @@ class ArchitextFront(GradioFront):
                                              choices = self.space_names_camel_case_to_title_case(space_names),
                                              value = [], visible = True)
 
-        return [img, prompt, creativity, feedback, rating, spaces_to_remove]
+        return [img, prompt, creativity, feedback, rating, rule, rule_score, spaces_to_remove]
 
     def space_names_title_case_to_camel_case(self, space_names):
         camel_case_space_names = []
