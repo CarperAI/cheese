@@ -54,7 +54,7 @@ class ArchitextModel(BaseModel):
         self.model = AutoModelForCausalLM.from_pretrained("architext/gptj-162M")
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
-        self.device = "cuda:0"
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = self.model.to(self.device)
     
     def process(self, data: ArchitextBatchElement) -> ArchitextBatchElement:
@@ -64,26 +64,25 @@ class ArchitextModel(BaseModel):
 
 
 class ArchitextFront(GradioFront):
-    def main(self):
-        rules = [
-            "Spaces are allocated appropriately with respect to living conditions.",
-            "There is a pronounced space around which the design is structured.",
-            "Spaces in the design are functionally coherent.",
-            "The design is simple for its conditions.",
-            "The design contains no seperated (inaccessible) spaces.",
-            "The design is plausible.",
-            "The design makes sense."
-        ]
-        rule_string = rules[random.randint(0, 6)]
+    rules = [
+        "Spaces are allocated appropriately with respect to living conditions.",
+        "There is a pronounced space around which the design is structured.",
+        "Spaces in the design are functionally coherent.",
+        "The design is simple for its conditions.",
+        "The design contains no seperated (inaccessible) spaces.",
+        "The design is plausible.",
+        "The design makes sense."
+    ]
 
+    def main(self):
         with gr.Row():
             with gr.Column():
                 prompt = gr.Textbox(label = "Prompt")
                 creativity = gr.Radio(choices = ["Low", "Medium", "High"], label = "Creativity", value = "Low")
                 feedback = gr.Textbox(label = "Feedback on Generation", interactive = False, value = " ")
                 rating = gr.Slider(label = "Generation Rating", minimum = 0, maximum = 10, step = 1, interactive = False,  value = 0)
-                rule = gr.Textbox(value = rule_string, interactive = False, visible = False)
-                rule_score = gr.Radio(choices = ["strongly agree", "agree", "neutral", "disagree", "strongly disagree"], label = rule_string, interactive = False, value = [])
+                rule = gr.Textbox(interactive = False, value = " ", visible = False)
+                rule_score = gr.Radio(choices = ["strongly disagree", "disagree", "neutral", "agree", "strongly agree"], interactive = False, value = " ")
                 spaces_to_remove = gr.CheckboxGroup(label = "Rooms to delete (ordered from top left to bottom right)", interactive = False, value = None, choices=[])
 
             with gr.Column():
@@ -146,12 +145,13 @@ class ArchitextFront(GradioFront):
                                          choices = self.space_names_camel_case_to_title_case(space_names),
                                          value = [], visible = False)
         else:
+            rule_string = self.rules[random.randint(0, 6)];
             prompt = gr.update(interactive = False)
             creativity = gr.update(interactive = False)
             feedback = gr.update(interactive = True, visible = True)
             rating = gr.update(interactive = True, visible = True)
-            rule = gr.update(interactive = False, visible = False)
-            rule_score = gr.update(interactive = True, visible = True)
+            rule = gr.update(interactive = False, value = rule_string, visible = False)
+            rule_score = gr.update(interactive = True, label = rule_string, visible = True)
 
             if len(space_names) > 0:
                 spaces_to_remove = gr.update(interactive = True,
