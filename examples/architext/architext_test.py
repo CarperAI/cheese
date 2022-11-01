@@ -65,11 +65,10 @@ class ArchitextModel(BaseModel):
 
 class ArchitextFront(GradioFront):
     rules = [
-        "Spaces are allocated appropriately with respect to living conditions.",
-        "There is a pronounced space around which the design is structured.",
-        "Spaces in the design are functionally coherent.",
-        "The design is simple for its conditions.",
-        "The design contains no seperated (inaccessible) spaces.",
+        "The rooms are appropriately allocated for comfortable living.",
+        "The design is structured around a pronounced room.",
+        "The design is simple.",
+        "The design contains no inaccessible rooms.",
         "The design is plausible.",
         "The design makes sense."
     ]
@@ -82,7 +81,7 @@ class ArchitextFront(GradioFront):
                 feedback = gr.Textbox(label = "Feedback on Generation", interactive = False, value = " ")
                 rating = gr.Slider(label = "Generation Rating", minimum = 0, maximum = 10, step = 1, interactive = False,  value = 0)
                 rule = gr.Textbox(interactive = False, value = " ", visible = False)
-                rule_score = gr.Radio(choices = ["strongly disagree", "disagree", "neutral", "agree", "strongly agree"], interactive = False, value = " ")
+                rule_score = gr.Radio(choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"], interactive = False, value = " ")
                 spaces_to_remove = gr.CheckboxGroup(label = "Rooms to delete (ordered from top left to bottom right)", interactive = False, value = None, choices=[])
 
             with gr.Column():
