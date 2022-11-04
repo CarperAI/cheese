@@ -23,6 +23,7 @@ class WriteOnlyPipeline(DatasetPipeline):
         super().__init__()
 
         self.write_path = write_path
+        self.force_new = force_new
 
         try:
             assert not force_new

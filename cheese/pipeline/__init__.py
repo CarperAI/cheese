@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List
+from typing import List, Dict
 import pickle
 
 from pyparsing import ParseExpression
@@ -43,6 +43,13 @@ class Pipeline:
 
         self.subscriber.subscribe_on_thread()
         self.model_subscriber.subscribe_on_thread()
+    
+    @abstractmethod
+    def get_stats(self) -> Dict:
+        """
+        Returns statistics about pipeline. Likely different for any given Pipeline
+        """
+        pass
 
     @abstractmethod
     def exhausted(self) -> bool:
@@ -79,10 +86,13 @@ class Pipeline:
         batch_element = self.fetch()
 
         task = Task(batch_element)
+
+        route = 'client' if batch_element.trip_start == "client" else 'model'
+
         tasks = pickle.dumps(task)
 
         self.publisher.publish(
-            routing_key = 'client',
+            routing_key = route,
             payload = tasks
         )
 

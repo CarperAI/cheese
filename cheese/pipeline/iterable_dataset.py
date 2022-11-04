@@ -31,6 +31,8 @@ class IterablePipeline(DatasetPipeline):
         super().__init__()
 
         self.data_source = iter
+        self.iter_steps = 0 # How many steps through iterator have been taken (counting bad data)
+        self.progress = 0 # How much data we have succesfully written to target
 
         self.fail_next = False # Made true once next(self.data_source) fails
 
@@ -40,11 +42,20 @@ class IterablePipeline(DatasetPipeline):
         try:
             assert not force_new
             self.res_dataset = load_from_disk(write_path)
-            self.progress = joblib.load("save_data/progress.joblib")
+            self.iter_steps, self.progress = joblib.load("save_data/progress.joblib")
+            for _ in range(self.iter_steps):
+                next(self.data_source)
+
         except:
             safe_mkdir("save_data")
             self.progress = 0
             self.save_dataset()
+
+    def get_stats(self) -> Dict:
+        return {
+            "progress" : self.progress,
+            "iter_steps" : self.iter_steps
+        }
 
     def exhausted(self) -> bool:
         return self.progress >= self.max_length or self.fail_next
@@ -54,7 +65,7 @@ class IterablePipeline(DatasetPipeline):
         Save dataset and progress.
         """
         super().save_dataset()
-        joblib.dump(self.progress, "save_data/progress.joblib")
+        joblib.dump([self.iter_steps, self.progress], "save_data/progress.joblib")
 
     def preprocess(self, x : Any) -> Any:
         """

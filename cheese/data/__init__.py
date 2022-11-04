@@ -11,10 +11,13 @@ class BatchElement:
     :param trip: How many targets have touched/accessed this data so far
     :type trip: int
 
+    :param trip_start: First target for data ("client" or "model") after it is queued by pipeline. Defaults to "client".
+    :type trip_start: str
+
     :param trip_max: How many targets can touch/access this data before it goes back to pipeline to be posted
     :type trip_max: int
 
-    :param error: A flag for frontend to mark the data as being erroneous (i.e. if it couldn't be labelled properly)
+    :param error: A flag for frontend to mark the data as being erroneous (i.e. if it couldn't be labelled properly). While it doesn't do this by default, it is reccomended you account for errors in Pipeline.post()
     :type error: bool
 
     :param start_time: Timestamp for when data was first given to a client
@@ -25,7 +28,23 @@ class BatchElement:
     """
     client_id : int = -1
     trip : int = 0 
+    trip_start : str = "client" 
     trip_max : int = 1 
     error : bool = False
     start_time : float = -1.0
     end_time : float = -1.0
+
+    def early_finish(self):
+        """
+        Calling this sets trip to trip_max, resulting in data immediately being sent to pipeline.
+        """
+        self.trip = self.trip_max
+    
+    def total_time(self):
+        """
+        Returns the time taken for this data to be processed, in seconds. Returns -1 if either timestamps are unset.
+        """
+        if self.end_time == -1.0 or self.start_time == -1.0:
+            return -1.0
+
+        return self.end_time - self.start_time
