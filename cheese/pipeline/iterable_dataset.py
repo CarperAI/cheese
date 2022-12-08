@@ -27,8 +27,8 @@ class IterablePipeline(DatasetPipeline):
 
     :param max_length: Maximum number of entries to produce for output dataset. Defaults to infinity.
     """
-    def __init__(self, iter : Iterable, write_path : str, force_new : bool = False, max_length = np.inf):
-        super().__init__()
+    def __init__(self, iter : Iterable, write_path : str, force_new : bool = False, max_length = np.inf, **kwargs):
+        super().__init__(**kwargs)
 
         self.data_source = iter
         self.iter_steps = 0 # How many steps through iterator have been taken (counting bad data)
