@@ -6,6 +6,7 @@ from cheese.data import BatchElement
 
 import threading
 import joblib
+import time
 
 class GenerativePipeline(WriteOnlyPipeline):
     """
@@ -120,7 +121,11 @@ class GenerativePipeline(WriteOnlyPipeline):
 
     def fetch(self) -> BatchElement:
         if len(self.buffer) == 0:
-            raise Exception("Error: Tried to fetch data before any was created. Please wait longer for buffer to fill or increase its capacity.")
+            # Stall until buffer is ready
+            print("Warning: Tried to fetch data before any was created. Please wait longer for buffer to fill or increase its capacity. Execution  will now stall until buffer is ready.")
+            while len(self.buffer) == 0:
+                time.sleep(1)
+
         elem = self.buffer.pop(0)
         return elem
     
