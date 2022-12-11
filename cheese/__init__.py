@@ -18,9 +18,6 @@ class CHEESE:
     """
     Main object to use for running tasks with CHEESE
 
-    :param port: Port to run rabbitmq server on
-    :type port: int
-
     :param pipeline_cls: Class for pipeline
     :type pipeline_cls: Callable[, Pipeline]
 
@@ -39,20 +36,26 @@ class CHEESE:
     :param draw_always: If true, doesn't check for free clients before drawing a task.
         This is useful if you are trying to feed data directly to model and don't need to worry about having free clients.
     :type draw_always: bool
+
+    :param host: Host for rabbitmq server. Normally just locahost if you are running locally
+    :type host: str
+
+    :param port: Port to run rabbitmq server on
+    :type port: int
     """
     def __init__(
         self,
         pipeline_cls = None, client_cls = None, model_cls = None,
         pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
         gradio : bool = True, draw_always : bool = False,
-        port : int = 5672
+        host : str = 'localhost', port : int = 5672
         ):
 
         self.gradio = gradio
         self.draw_always = draw_always
 
         # Initialize rabbit MQ server
-        self.connection = BRabbit(host='localhost', port=port)
+        self.connection = BRabbit(host=host, port=port)
 
         # Channel for client to notify of task completion
         self.subscriber = self.connection.EventSubscriber(

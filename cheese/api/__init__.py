@@ -18,17 +18,20 @@ class CHEESEAPI:
     """
     API to access CHEESE master object. Assumes
 
+    :param host: Host for rabbitmq server. Normally just locahost if you are running locally
+    :type host: str
+
     :param port: Port to run rabbitmq server on
     :type port: int
 
     :param timeout: Timeout for waiting for main server to respond
     :type timeout: float
     """
-    def __init__(self, port : int = 5672, timeout : float = 10):
+    def __init__(self, host : str = 'localhost', port : int = 5672, timeout : float = 10):
         self.timeout = timeout
 
         # Initialize rabbit MQ server
-        self.connection = BRabbit(host='localhost', port=port)
+        self.connection = BRabbit(host=host, port=port)
 
         # Channel to get results back from main server
         self.subscriber = self.connection.EventSubscriber(
