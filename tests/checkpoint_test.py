@@ -5,7 +5,8 @@
 from examples.server.image_selection_server import *
 from cheese import CHEESE
 from dataclasses import dataclass
-from datasets import load_from_disk
+from datasets import Dataset
+import pandas as pd
 
 from b_rabbit import BRabbit
 
@@ -25,27 +26,35 @@ if __name__ == "__main__":
     )
 
     # Add something
+    data = []
 
+    data.append({
+        "img1_url" : "a", "img2_url" : "b",
+        "select" : 1, "time" : 1
+    })
     cheese.pipeline.post(
         ImageSelectionBatchElement(
-            img1_url = "a", img2_url = "b",
-            select = 1, time = 1
+            **data[0]
         )
     )
 
+    data.append({
+        "img1_url" : "c", "img2_url" : "d",
+        "select" : 1, "time" : 1
+    })
     cheese.pipeline.post(
         ImageSelectionBatchElement(
-            img1_url = "a1", img2_url = "b1",
-            select = 1, time = 1
+            **data[1]
         )
     )
 
     del cheese
 
     # Check dataset to make sure the data was saved
-    dataset = load_from_disk("./img_dataset_res")
+    # Assert each row is what we expect
+    dataset = pd.read_csv("./img_dataset_res")
     for i in range(len(dataset)):
-        print(dataset[i])
+        assert dataset.loc[i].to_dict() == data[i]
 
     cheese = CHEESE(    
         ImageSelectionPipeline, ImageSelectionFront,
@@ -54,27 +63,35 @@ if __name__ == "__main__":
         }
     )
 
+    data.append({
+        "img1_url" : "e", "img2_url" : "f",
+        "select" : 1, "time" : 1
+    })
     cheese.pipeline.post(
         ImageSelectionBatchElement(
-            img1_url = "c", img2_url = "d",
-            select = 1, time = 1
+            **data[2]
         )
     )
 
+    data.append({
+        "img1_url" : "g", "img2_url" : "h",
+        "select" : 1, "time" : 1
+    })
     cheese.pipeline.post(
         ImageSelectionBatchElement(
-            img1_url = "e", img2_url = "f",
-            select = 1, time = 1
+            **data[3]
         )
     )
 
     print("==== 2 ====")
     for i in range(len(dataset)):
-        print(dataset[i])
+        assert dataset.loc[i].to_dict() == data[i]
 
-    dataset = load_from_disk("./img_dataset_res")
+    dataset = pd.read_csv("./img_dataset_res")
 
     print(" ==== 3 ====")
     for i in range(len(dataset)):
-        print(dataset[i])
+        assert dataset.loc[i].to_dict() == data[i]
+
+    print("All Tests Passed")
 
