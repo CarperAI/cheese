@@ -3,7 +3,7 @@ from cheese.pipeline.iterable_dataset import IterablePipeline, InvalidDataExcept
 from cheese.data import BatchElement
 from cheese.client.gradio_client import GradioFront
 
-from cheese.api import CHEESE
+from cheese import CHEESE
 
 from dataclasses import dataclass
 
@@ -57,7 +57,7 @@ class ImageSelectionPipeline(IterablePipeline):
         """
         Post takes a finished (labelled) batch element and posts it to result dataset.
         """
-        row = {"img1_url" : be.img1_url, "img2_url" : be.img2_url, "selection" : be.select, "time" : be.time}
+        row = {"img1_url" : be.img1_url, "img2_url" : be.img2_url, "select" : be.select, "time" : be.time}
         # IterablePipeline.post_row(...) takes a dict and adds it as a row to end of the result dataset
         # It also saves the result dataset and updates progress (in most cases it should always be called in post)
         # We check for bad data and avoid it
@@ -157,6 +157,7 @@ if __name__ == "__main__":
             "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : True, "max_length" : 5
         }
     )
+
     print(cheese.launch())
 
     print(cheese.create_client(15))
