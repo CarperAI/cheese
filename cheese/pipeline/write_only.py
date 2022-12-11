@@ -27,7 +27,7 @@ class WriteOnlyPipeline(DatasetPipeline):
 
         try:
             assert not force_new
-            self.res_dataset = load_from_disk(write_path)
+            assert self.load_dataset()
             print(f"Succesfully loaded dataset with {len(self.res_dataset)} entries.")
         except:
             pass

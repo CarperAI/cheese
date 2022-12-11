@@ -41,7 +41,7 @@ class IterablePipeline(DatasetPipeline):
 
         try:
             assert not force_new
-            self.res_dataset = load_from_disk(write_path)
+            assert self.load_dataset()
             self.iter_steps, self.progress = joblib.load("save_data/progress.joblib")
             for _ in range(self.iter_steps):
                 next(self.data_source)
