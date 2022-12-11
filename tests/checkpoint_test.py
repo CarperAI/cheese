@@ -1,4 +1,6 @@
-# This script tests if checkpoints are being saved properly
+"""
+    This test script ensures that datasets can be saved, recovered and saved to again.
+"""
 
 from examples.server.image_selection_server import *
 from cheese import CHEESE
@@ -18,7 +20,7 @@ if __name__ == "__main__":
     cheese = CHEESE(
         ImageSelectionPipeline, ImageSelectionFront,
         pipeline_kwargs = {
-            "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : True, "max_length" : 5
+            "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : True, "max_length" : 5, "format" : "csv"
         }
     )
 
@@ -48,7 +50,7 @@ if __name__ == "__main__":
     cheese = CHEESE(    
         ImageSelectionPipeline, ImageSelectionFront,
         pipeline_kwargs = {
-            "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : False, "max_length" : 5
+            "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : False, "max_length" : 5, "format" : "csv"
         }
     )
 
