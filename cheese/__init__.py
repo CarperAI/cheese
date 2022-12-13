@@ -150,6 +150,8 @@ class CHEESE:
                     send(self.get_stats())
                 elif msg[0] == msg_constants.DRAW:
                     self.draw()
+                else:
+                    print("Warning: Unknown message received", msg)
             time.sleep(listen_every)
         
     @rabbitmq_callback
