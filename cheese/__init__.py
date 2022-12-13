@@ -105,6 +105,8 @@ class CHEESE:
         # Communication with API
         self.receive_buffer = []
 
+        self.url = None
+
     def launch(self) -> str:
         """
         Launch the frontend and return URL for users to access it.
@@ -115,6 +117,7 @@ class CHEESE:
             raise Exception("CHEESE has already been launched")
         
         self.launched = True
+        self.url = url
         return url
     
     def start_listening(self, verbose : bool = True, listen_every : float = 1.0):
@@ -214,7 +217,9 @@ class CHEESE:
         """
         Get various statistics in the form of a dictionary.
 
-        :return: Dictionary containing following statistics:
+        :return: Dictionary containing following statistics and values
+            - url: URL for accessing CHEESE frontend
+            - finished: Whether pipeline is exhausted
             - num_clients: Number of clients connected to CHEESE
             - num_busy_clients: Number of clients currently working on a task
             - num_tasks: Number of tasks completed overall
@@ -231,6 +236,8 @@ class CHEESE:
             num_tasks += stat.total_tasks
 
         return {
+            'url' : self.url,
+            'finished' : self.finished,
             'num_clients' : self.clients,
             'num_busy_clients' : self.busy_clients,
             'num_tasks' : num_tasks,
