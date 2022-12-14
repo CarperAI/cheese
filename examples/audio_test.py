@@ -2,7 +2,7 @@ from cheese.pipeline.wav_folder import WavFolderPipeline
 from cheese.data import BatchElement
 from cheese.client.gradio_client import GradioFront
 
-from cheese.api import CHEESE
+from cheese import CHEESE
 
 from datasets import Dataset
 import gradio as gr

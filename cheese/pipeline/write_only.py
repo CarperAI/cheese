@@ -19,15 +19,16 @@ class WriteOnlyPipeline(DatasetPipeline):
     :param force_new: Whether to force a new dataset to be created, even if one already exists at the write path
     :type force_new: bool
     """
-    def __init__(self, write_path : str, force_new : bool = False):
-        super().__init__()
+    def __init__(self, write_path : str, force_new : bool = False, **kwargs):
+        super().__init__(**kwargs)
 
         self.write_path = write_path
         self.force_new = force_new
 
         try:
             assert not force_new
-            self.res_dataset = load_from_disk(write_path)
+            assert self.load_dataset()
+            print(f"Succesfully loaded dataset with {len(self.res_dataset)} entries.")
         except:
             pass
 

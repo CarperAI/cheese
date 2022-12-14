@@ -8,97 +8,93 @@ from cheese.models import BaseModel
 import cheese.utils.msg_constants as msg_constants
 from cheese.utils.rabbit_utils import rabbitmq_callback
 
+import pickle
 from b_rabbit import BRabbit
 from tqdm import tqdm
 import time
 
 # Master object for CHEESE
-class CHEESE:
+class CHEESEAPI:
     """
-    Main object to use for running tasks with CHEESE
+    API to access CHEESE master object. Assumes
 
-    :param pipeline_cls: Class for pipeline
-    :type pipeline_cls: Callable[, Pipeline]
+    :param host: Host for rabbitmq server. Normally just locahost if you are running locally
+    :type host: str
 
-    :param client_cls: Class for client
-    :type client_cls: Callable[,GradioFront] if gradio
+    :param port: Port to run rabbitmq server on
+    :type port: int
 
-    :param model_cls: Class for model
-    :type model_cls: Callable[,BaseModel]
-
-    :param pipeline_kwargs: Additional keyword arguments to pass to pipeline constructor
-    :type pipeline_kwargs: Dict[str, Any]
-
-    :param gradio: Whether to use gradio or custom frontend
-    :type gradio: bool
-
-    :param draw_always: If true, doesn't check for free clients before drawing a task.
-        This is useful if you are trying to feed data directly to model and don't need to worry about having free clients.
-    :type draw_always: bool
+    :param timeout: Timeout for waiting for main server to respond
+    :type timeout: float
     """
-    def __init__(
-        self,
-        pipeline_cls, client_cls = None, model_cls = None,
-        pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
-        gradio : bool = True, draw_always : bool = False
-        ):
-
-        self.gradio = gradio
-        self.draw_always = draw_always
+    def __init__(self, host : str = 'localhost', port : int = 5672, timeout : float = 10):
+        self.timeout = timeout
 
         # Initialize rabbit MQ server
-        self.connection = BRabbit(host='localhost', port=5672)
+        self.connection = BRabbit(host=host, port=port)
 
-        # Channel for client to notify of task completion
+        # Channel to get results back from main server
         self.subscriber = self.connection.EventSubscriber(
             b_rabbit = self.connection,
-            routing_key = 'main',
-            publisher_name = 'client',
-            event_listener = self.client_ping
+            routing_key = 'api',
+            publisher_name = 'main',
+            event_listener = self.main_listener
         )
 
         self.subscriber.subscribe_on_thread()
+
+        # Channel to send commands to main server
+        self.publisher = self.connection.EventPublisher(
+            b_rabbit = self.connection,
+            publisher_name = 'api'
+        )
+
+        # Any received values from main will be placed here
+        self.buffer : Any = None 
+
+        # Check if main server is running
+        self.connected_to_main : bool = False
+        self.publisher.publish('main', pickle.dumps(msg_constants.READY))
+        self.connected_to_main = True
+
+        if not self.await_result():
+            raise Exception("Main server not running")
+
+    @rabbitmq_callback
+    def main_listener(self, msg : str):
+        """
+        Callback for main server. Receives messages from main server and places them in buffer.
+        """
+        if not self.connected_to_main:
+            print("Warning: RabbitMQ queue non-empty at startup. Consider restarting RabbitMQ server if unexpected errors arise.")
+            return
+        msg = pickle.loads(msg)
+        self.buffer = msg
+    
+    def await_result(self, time_step : float = 0.5):
+        """
+        Assuming buffer is none
+        """
+        total_time = 0
+        while self.buffer is None:
+            time.sleep(time_step)
+            total_time += time_step
+            if total_time > self.timeout:
+                print("Warning: Timeout exceeded awaiting API result.")
+                return None
         
-        # API components initialized
-        self.pipeline : Pipeline = pipeline_cls(**pipeline_kwargs)
-        self.model : BaseModel = model_cls(**model_kwargs) if model_cls is not None else None
+        res = self.buffer
+        self.buffer = None
+        return res
 
-        self.client_cls = client_cls
-        if gradio:
-            self.client_manager = GradioClientManager()
-        else:
-            self.client_manager = ClientManager()
-
-        self.pipeline.init_connection(self.connection)
-        self.client_manager.init_connection(self.connection)
-        if self.model is not None: self.model.init_connection(self.connection)
-
-        self.clients = 0
-        self.busy_clients = 0
-
-        self.finished = False # For when pipeline is exhausted
 
     def launch(self) -> str:
         """
         Launch the frontend and return URL for users to access it.
         """
-        return self.client_manager.init_front(self.client_cls)
+        self.publisher.publish('main', pickle.dumps(msg_constants.LAUNCH))
+        return self.await_result()
     
-    @rabbitmq_callback
-    def client_ping(self, msg):
-        """
-        Method for ClientManager to ping the API when it needs more tasks or has taken a task
-        """
-        msg = msg.decode('utf-8')
-        if msg == msg_constants.SENT:
-            # Client sent task to pipeline, needs a new one
-            self.busy_clients -= 1
-            self.draw()
-        elif msg == msg_constants.RECEIVED:
-            self.busy_clients += 1
-        else:
-            raise Exception("Error: Client pinged master with unknown message")
-
     def create_client(self, id : int) -> Tuple[int, int]:
         """
         Create a client instance with given id.
@@ -108,11 +104,10 @@ class CHEESE:
 
         :return: Username and password user can use to log in to CHEESE
         """
+        msg = f"{msg_constants.ADD}|{id}"
+        self.publisher.publish('main', pickle.dumps(msg))
 
-        id, pwd = self.client_manager.add_client(id)
-        self.clients += 1
-        self.draw() # pre-emptively draw a task for the client to pick up
-        return id, pwd
+        return self.await_result()
     
     def remove_client(self, id : int):
         """
@@ -121,8 +116,10 @@ class CHEESE:
         :param id: A unique identifying number for the client.
         :type id: int
         """
-        self.client_manager.remove_client(id)
-        self.clients -= 1
+        msg = f"{msg_constants.REMOVE}|{id}"
+        self.publisher.publish('main', pickle.dumps(msg))
+
+        return self.await_result()
 
     def get_stats(self) -> Dict:
         """
@@ -136,38 +133,16 @@ class CHEESE:
             - model_stats: Dictionary of model statistics
             - pipeline_stats: Dictionary of pipeline statistics
         """
-        client_stats = self.client_manager.client_statistics
+        self.publisher.publish('main', pickle.dumps(msg_constants.STATS))
 
-        # Get num_tasks from all clients
-        num_tasks = 0
-        for client in client_stats:
-            stat : ClientStatistics = client_stats[client]
-            num_tasks += stat.total_tasks
-
-        return {
-            'num_clients' : self.clients,
-            'num_busy_clients' : self.busy_clients,
-            'num_tasks' : num_tasks,
-            'client_stats' : client_stats,
-            'model_stats' : self.model.get_stats() if self.model else None,
-            'pipeline_stats' : self.pipeline.get_stats()
-        }
+        return self.await_result()
 
     def draw(self):
         """
         Draws a sample from data pipeline and creates a task to send to clients. Does nothing if no free clients.
         This check if overriden if draw_always is set to True.
         """
-
-        if not self.draw_always and self.busy_clients >= self.clients:
-            return
-
-        exhausted = not self.pipeline.queue_task()
-
-        if exhausted and self.pipeline.exhausted():
-            #  finished, so we can stop
-            self.finished = True
-
+        self.publisher.publish('main', pickle.dumps(msg_constants.DRAW))
 
     def progress_bar(self, max_tasks : int, access_stat : Callable, call_every : Callable = None, check_every : float = 1.0):
         """

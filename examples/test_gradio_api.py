@@ -1,6 +1,6 @@
 from cheese.pipeline.text_captions import TextCaptionPipeline
 from cheese.client.gradio_text_captions import GradioTextCaptionClient
-from cheese.api import CHEESE
+from cheese import CHEESE
 
 from datasets import load_from_disk
 import time

@@ -5,3 +5,4 @@ markupsafe
 pandas
 joblib
 jinja2
+altair

@@ -5,3 +5,4 @@ b_rabbit
 datasets
 webdataset
 joblib
+altair
