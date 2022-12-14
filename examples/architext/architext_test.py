@@ -6,10 +6,10 @@ from cheese.pipeline.write_only import WriteOnlyPipeline
 from dataclasses import dataclass
 from examples.architext.architext_util import prompt_to_layout
 
+from datetime import datetime
 import gradio as gr
 import json
 import random
-import pickle
 import time
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -34,12 +34,19 @@ class ArchitextPipeline(WriteOnlyPipeline):
     
     def post(self, batch_element : ArchitextBatchElement):
         data = batch_element
+        layout_image_path = "./dataset/" + str(datetime.timestamp(datetime.now())) + "_" + data.prompt + ".png"
+        layout_image = data.result['image']
+        layout_image.save(layout_image_path)
+        layout_after_removed = None
+        if data.result is not None and 'layout_after_removed' in data.result.keys():
+            layout_after_removed = data.result['layout_after_removed']
         self.add_row_to_dataset(
             {
                 "prompt" : data.prompt,
                 "creativity" : data.creativity,
                 "layout" : data.result['layout'],
-                "layout_after_removed" : data.result['layout_after_removed'],
+                "layout_image_path" : layout_image_path,
+                "layout_after_removed" : layout_after_removed,
                 "feedback" : data.feedback,
                 "score" : int(data.score),
                 "rule" : data.rule,
@@ -185,7 +192,7 @@ if __name__ == "__main__":
     cheese = CHEESE(
         ArchitextPipeline, ArchitextFront, ArchitextModel,
         pipeline_kwargs = {
-            "write_path" : "./dataset/architext_dataset_res.csv", "force_new" : True
+            "write_path" : "./dataset/architext_dataset_res.csv", "force_new" : False
         }
     )
     url = cheese.launch()
