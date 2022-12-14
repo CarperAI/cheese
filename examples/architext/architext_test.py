@@ -38,7 +38,8 @@ class ArchitextPipeline(WriteOnlyPipeline):
             {
                 "prompt" : data.prompt,
                 "creativity" : data.creativity,
-                "result" : pickle.dumps(data.result),
+                "layout" : data.result['layout'],
+                "layout_after_removed" : data.result['layout_after_removed'],
                 "feedback" : data.feedback,
                 "score" : int(data.score),
                 "rule" : data.rule,
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     cheese = CHEESE(
         ArchitextPipeline, ArchitextFront, ArchitextModel,
         pipeline_kwargs = {
-            "write_path" : "./architext_dataset_res", "force_new" : True
+            "write_path" : "./dataset/architext_dataset_res.csv", "force_new" : True
         }
     )
     url = cheese.launch()
