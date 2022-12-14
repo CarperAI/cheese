@@ -51,7 +51,7 @@ class ArchitextModel(BaseModel):
     def __init__(self):
         super().__init__()
 
-        self.model = AutoModelForCausalLM.from_pretrained("/Users/emerson/gptj-162M")
+        self.model = AutoModelForCausalLM.from_pretrained("architext/gptj-162M")
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -119,7 +119,6 @@ class ArchitextFront(GradioFront):
                 result_layout_with_removed.pop(removed_space_name, None)
 
             task.data.result['layout_after_removed'] = json.dumps(result_layout_with_removed)
-        # print("task:", task)
         return task
 
     def present(self, task):
