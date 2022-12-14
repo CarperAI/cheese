@@ -18,4 +18,10 @@ Q: How do I run CHEESE?
 A: You can refer to :ref:`getting started <started>` to get CHEESE running. For more info on
 creating your own tasks in CHEESE you can refer to :ref:`custom tasks in gradio <customtask>`.  
 
+Q: Does the server have to be run from my application?
+
+A: Nope! There are many use cases in which you may want to run CHEESE separately from your application that you wish to connect to CHEESE.
+This is the purpose of :code:`cheese.api`. You can the server as you would normally, then you can call upon
+the :code:`cheese.api.CHEESEAPI` object to use any of the functionality of :code:`cheese.CHEESE`.
+
 

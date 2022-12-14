@@ -81,7 +81,7 @@ class SentimentFront(GradioFront):
         data : SentimentElement = task.data
         return [data.text] # Return list for gradio outputs
 
-from cheese.api import CHEESE
+from cheese import CHEESE
 import time
 
 data = ["The goose went to the store and was very happy", "The goose went to the store and was very sad"]

@@ -107,7 +107,7 @@ will run the experiment on two strings and post the results to a folder called s
 
 .. code-block:: python
 
-    from cheese.api import CHEESE
+    from cheese import CHEESE
     import time
 
     data = ["The goose went to the store and was very happy", "The goose went to the store and was very sad"]
@@ -189,3 +189,41 @@ to construction of the CHEESE object is specifiying a model class.
             "max_length" : 5
         }
     )
+
+    # For the API to function. More information below.
+    cheese.start_listening()
+
+Finally, what if we wanted to access results from another script or machine? Generally, you can
+create the API object without specifiying a host address and port. However,
+if you need to change this, you can simply pass your desired host and port
+to both the server constructor and the api constructor. The below example
+shows the default values for both. Be sure to call `cheese.start_listening()` on the
+server object before constructing the API object, as it will rely on this
+to make the initial connection.
+
+.. code-block:: python
+
+    from cheese.api import CHEESEAPI
+    api = CHEESEAPI(
+        timeout = 10,
+        host = 'localhost',
+        port = 5672
+    )
+
+    # Can now use API as we'd expect
+    
+    # Trying to launch when already launched will cause an error
+    # So ensure that the server did not call launch beforehand
+    api.launch()
+    stats = api.get_stats()
+
+    # If you need the URL after launching, you can access it from stats
+    url = stats["url"]
+
+    usr, passwd = api.create_client(1)
+
+    while True:
+        time.sleep(10)
+        stats = api.get_stats()
+        if stats["finished"]:
+            break

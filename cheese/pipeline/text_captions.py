@@ -27,7 +27,7 @@ class TextCaptionPipeline(Pipeline):
         # Captioned dataset
         try:
             assert not force_new
-            self.res_dataset = load_from_disk(write_path)
+            assert self.load_dataset()
             self.finished_items = len(self.res_dataset["text"])
         except:
             # intialize empty dataset as pandas df, then convert to dataset

@@ -57,10 +57,11 @@ class ArchitextModel(BaseModel):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = self.model.to(self.device)
     
-    def process(self, data: ArchitextBatchElement) -> ArchitextBatchElement:
+    def process(self, data: 'list[ArchitextBatchElement]') -> ArchitextBatchElement:
+        data = data[0]
         imgs_comb, out_dict = prompt_to_layout(self.model, self.tokenizer, self.device, data.prompt, data.creativity)
         data.result = { 'image': imgs_comb, 'layout': out_dict }
-        return data
+        return [data]
 
 
 class ArchitextFront(GradioFront):
@@ -143,7 +144,7 @@ class ArchitextFront(GradioFront):
                                          choices = self.space_names_camel_case_to_title_case(space_names),
                                          value = [], visible = False)
         else:
-            rule_string = self.rules[random.randint(0, 6)];
+            rule_string = self.rules[random.randint(0, 5)]
             prompt = gr.update(interactive = False)
             creativity = gr.update(interactive = False)
             feedback = gr.update(interactive = True, visible = True)

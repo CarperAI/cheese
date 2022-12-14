@@ -16,11 +16,12 @@ CHEESE is a Co-adaptive Harness for Effective Evaluation, Steering and Enhanceme
    :maxdepth: 1
    :caption: The Backend
 
-   backend/api
-   backend/data
-   backend/pipeline
-   backend/model
-   backend/gradio_client
+   cheese/api
+   cheese/cheese
+   cheese/data
+   cheese/pipeline
+   cheese/model
+   cheese/gradio_client
 
 Indices and tables
 ==================

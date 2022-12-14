@@ -5,7 +5,7 @@ from cheese.pipeline.generative import GenerativePipeline
 from cheese.models import BaseModel
 from cheese.data import BatchElement
 from cheese.client.gradio_client import GradioFront
-from cheese.api import CHEESE
+from cheese import CHEESE
 
 from PIL import Image
 

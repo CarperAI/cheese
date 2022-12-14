@@ -42,7 +42,7 @@ class WavFolderPipeline(DatasetPipeline):
         self.total_items = len(os.listdir(self.read_path))
         try:
             assert not force_new
-            self.res_dataset = load_from_disk(write_path)
+            assert self.load_dataset()
             self.index_book = joblib.load("save_data/index_book.joblib")
         except:
             
