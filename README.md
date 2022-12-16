@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/453764663.svg)](https://zenodo.org/badge/latestdoi/453764663)
+
 [docs-image]: https://readthedocs.org/projects/cheese1/badge/?version=latest
 [docs-url]: https://cheese1.readthedocs.io/en/latest/?badge=latest
 
