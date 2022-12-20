@@ -26,9 +26,8 @@ class LMPipeline(GenerativePipeline):
         super().__init__(**kwargs)
 
         self.n_samples = n_samples
-        self.pipe = pipeline(task="text-generation", model = 'gpt2', device=0)
+        self.pipe = pipeline(task="text-generation", model = 'gpt2')
         self.pipe.tokenizer.pad_token_id = self.pipe.model.config.eos_token_id
-        # prevents annoying messages
         
 
         self.init_buffer()
@@ -42,7 +41,7 @@ class LMPipeline(GenerativePipeline):
         for i in range(self.batch_size):
             query = model_input[i]
             completions = self.pipe(query, max_length=100, num_return_sequences=self.n_samples)
-            completions = [completion["generated_text"] for completion in completions]
+            completions = [completion["generated_text"][len(query):] for completion in completions]
             elements.append(LMGenerationElement(query=query, completions=completions))
         return elements
     
@@ -58,7 +57,7 @@ class LMPipeline(GenerativePipeline):
     
 def make_iter(length : int = 20):
     print("Creating prompt iterator...")
-    pipe = pipeline(task="text-generation", model = 'gpt2', device=0)
+    pipe = pipeline(task="text-generation", model = 'gpt2')
     pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
     chunk_size = 16
     meta_prompt = f"As an example, below is a list of {chunk_size + 3} prompts you could feed to a language model:\n"+\
@@ -103,7 +102,6 @@ class LMFront(GradioFront):
         # When a button is pressed, append index to state, and make button not visible
 
         def press_button(i, pressed_val):
-            print("Pressed button", i)
             pressed_val.append(i)
 
             updates = [gr.update(visible = False if j in pressed_val else True) for j in range(5)]
