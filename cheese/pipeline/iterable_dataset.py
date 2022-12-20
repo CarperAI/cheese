@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from typing import Dict, Any, Iterable
 
-import webdataset as wds
 from datasets import load_from_disk, Dataset
 import pandas as pd
 import joblib

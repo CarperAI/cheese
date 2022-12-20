@@ -26,12 +26,16 @@ class CHEESEAPI:
 
     :param timeout: Timeout for waiting for main server to respond
     :type timeout: float
+
+    :param debug: Print debug messages for rabbitmq
+    :type debug: bool
     """
-    def __init__(self, host : str = 'localhost', port : int = 5672, timeout : float = 10):
+    def __init__(self, host : str = 'localhost', port : int = 5672, timeout : float = 10, debug : bool = False):
         self.timeout = timeout
 
         # Initialize rabbit MQ server
         self.connection = BRabbit(host=host, port=port)
+        self.debug = debug
 
         # Channel to get results back from main server
         self.subscriber = self.connection.EventSubscriber(
@@ -65,6 +69,8 @@ class CHEESEAPI:
         """
         Callback for main server. Receives messages from main server and places them in buffer.
         """
+        if self.debug:
+            print(f"Received message from main server: {pickle.loads(msg)}")
         if not self.connected_to_main:
             print("Warning: RabbitMQ queue non-empty at startup. Consider restarting RabbitMQ server if unexpected errors arise.")
             return

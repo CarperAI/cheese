@@ -22,13 +22,25 @@ class LMGenerationElement(BatchElement):
     rankings : List[int] = None # Ordering for the completions w.r.t indices
 
 class LMPipeline(GenerativePipeline):
-    def __init__(self, n_samples = 5, **kwargs):
+    """
+    Pipeline for doing language model generation.
+
+    :param n_samples: Number of samples to generate for each query. Due to issues with how gradio registers button events,
+    this had to be hardcoded in the demo, so be aware of this if you want to change the value (i.e. add/remove buttons)
+    :type n_samples: int
+
+    :param device: Device to use for inference (any n > -1 uses cuda device n, -1 uses cpu). Defaults to 0.
+    :type device: int
+
+    :param kwargs: Keyword arguments to pass to GenerativePipeline
+    :type kwargs: dict
+    """
+    def __init__(self, n_samples = 5, device : int = 0, **kwargs):
         super().__init__(**kwargs)
 
         self.n_samples = n_samples
-        self.pipe = pipeline(task="text-generation", model = 'gpt2', device=0)
+        self.pipe = pipeline(task="text-generation", model = 'gpt2')
         self.pipe.tokenizer.pad_token_id = self.pipe.model.config.eos_token_id
-        # prevents annoying messages
         
 
         self.init_buffer()
@@ -42,7 +54,7 @@ class LMPipeline(GenerativePipeline):
         for i in range(self.batch_size):
             query = model_input[i]
             completions = self.pipe(query, max_length=100, num_return_sequences=self.n_samples)
-            completions = [completion["generated_text"] for completion in completions]
+            completions = [completion["generated_text"][len(query):] for completion in completions]
             elements.append(LMGenerationElement(query=query, completions=completions))
         return elements
     
@@ -56,9 +68,21 @@ class LMPipeline(GenerativePipeline):
             "rankings" : batch_element.rankings
         }
     
-def make_iter(length : int = 20):
+def make_iter(length : int = 20, chunk_size : int = 16, device : int = 0):
+    """
+        Creates an iterator that generates prompts for the completions that will be presented to labeller.
+
+        :param length: Number of prompts to generate
+        :type length: int
+
+        :param chunk_size: Number of prompts to generate in one forward pass
+        :type chunk_size: int
+
+        :param device: Device to run model on (any n > -1 uses cuda device n, -1 uses cpu)
+        :type device: int
+    """
     print("Creating prompt iterator...")
-    pipe = pipeline(task="text-generation", model = 'gpt2', device=0)
+    pipe = pipeline(task="text-generation", model = 'gpt2', device = device)
     pipe.tokenizer.pad_token_id = pipe.model.config.eos_token_id
     chunk_size = 16
     meta_prompt = f"As an example, below is a list of {chunk_size + 3} prompts you could feed to a language model:\n"+\
@@ -103,7 +127,6 @@ class LMFront(GradioFront):
         # When a button is pressed, append index to state, and make button not visible
 
         def press_button(i, pressed_val):
-            print("Pressed button", i)
             pressed_val.append(i)
 
             updates = [gr.update(visible = False if j in pressed_val else True) for j in range(5)]
