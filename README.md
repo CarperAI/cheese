@@ -13,6 +13,15 @@ Used for adaptive human in the loop evaluation of language and embedding models.
 **[Documentation](https://cheese1.readthedocs.io)**
 
 # Getting Started
+
+First install the required packages:
+```
+git clone https://github.com/carperai/cheese
+cd cheese
+pip install -r requirements.txt
+```
+
+
 You need rabbitmq for the messaging system in the backend. It can be installed easily with conda as follows:
 ```
 conda install -c conda-forge rabbitmq-server
