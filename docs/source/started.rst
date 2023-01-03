@@ -23,7 +23,7 @@ Then, to verify CHEESE is working, run one of the example scripts:
 
 .. code-block:: bash
 
-    python -m cheese.examples.image_selection
+    python -m examples.image_selection
 
 The above example script will give you a url as well as a client id and password pair to login at that url.
 When logged in, the example task will be to select between one image or another 
