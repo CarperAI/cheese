@@ -11,8 +11,10 @@ class SentimentElement(BatchElement):
 from cheese.pipeline.iterable_dataset import IterablePipeline
 
 class SentimentPipeline(IterablePipeline):
-    def preprocess(self, x):
-        return x # Don't need any changes here- it's just a string
+    def preprocess(self, data):
+        question = data['body']
+        answer = data['answer']['body']
+        return {"question": question, "answer": answer}
 
     def fetch(self) -> SentimentElement:
         next_element = self.fetch_next()
@@ -73,11 +75,23 @@ class SentimentFront(GradioFront):
 from cheese import CHEESE
 import time
 
+from datasets import load_dataset
+
+dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python")
+# append ID col to dataset?
+
+
+# dataset['train'][0]['body'] # question
+# dataset['train'][0]['answer']['body'] # answer
+
 data = [
     {"question": "The goose went to the store and was very happy", "answer": "positive sentiment"},
-    {"question": "The goose went to the store and was very sad", "answer": "negative sentiment"}
+    {"question": "The goose went to the store and was very sad", "answer": "negative sentiment"},
+    {"question": "The goose went to the farm and saw friends", "answer": "positive sentiment"},
+    {"question": "The goose went to the farm and got lost", "answer": "negative sentiment"},
 ]
-data = iter(data) # Cast to an iterator for IterablePipeline
+
+data = iter(dataset['train']) # Cast to an iterator for IterablePipeline
 
 cheese = CHEESE(
     pipeline_cls = SentimentPipeline,
