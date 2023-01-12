@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CodeCritiqueElement(BatchElement):
+    question_id : str = None
     question : str = None
     answer : str = None
     original_code : str = None
@@ -13,14 +14,16 @@ from cheese.pipeline.iterable_dataset import IterablePipeline
 
 class CodeCritiquePipeline(IterablePipeline):
     def preprocess(self, data):
+        question_id = data['question_id']
         question = data['body']
         answer = data['answer']['body']
-        return {"question": question, "answer": answer}
+        return {"question_id": question_id, "question": question, "answer": answer}
 
     def fetch(self) -> CodeCritiqueElement:
         next_element = self.fetch_next()
         # TODO: exit here if no element
         return CodeCritiqueElement(
+            question_id=next_element["question_id"],
             question=next_element["question"],
             answer=next_element["answer"],
             original_code=next_element["question"],
@@ -30,11 +33,13 @@ class CodeCritiquePipeline(IterablePipeline):
 
     def post(self, data : CodeCritiqueElement):
         row = {
+            "question_id": data.question_id,
             "question": data.question,
             "answer": data.answer,
             "original_code": data.original_code,
             "refined_code": data.refined_code,
-            "critique": data.critique
+            "critique": data.critique,
+            "cheese_client_id": data.client_id,
         }
         print("posting row: ")
         print(row)
@@ -46,6 +51,7 @@ import gradio as gr
 class CodeCritiqueFront(GradioFront):
     def main(self):
         with gr.Column():
+            question_id = gr.Textbox(interactive = False, label = "Question ID")
             question = gr.Textbox(interactive = False, label = "Question")
             answer = gr.Textbox(interactive=False, label="Answer")
             original_code = gr.Textbox(interactive=True, label="Extract Original Code From Question")
@@ -56,10 +62,10 @@ class CodeCritiqueFront(GradioFront):
         self.wrap_event(btn.click)(
             self.response,
             inputs = [original_code, refined_code, critique],
-            outputs = [question, answer, original_code, refined_code, critique]
+            outputs = [question_id, question, answer, original_code, refined_code, critique]
         )
 
-        return [question, answer, original_code, refined_code, critique]
+        return [question_id, question, answer, original_code, refined_code, critique]
 
     def receive(self, *inp):
         # Receive gets a list of inputs which consist of
@@ -82,7 +88,7 @@ class CodeCritiqueFront(GradioFront):
 
     def present(self, task):
         data : CodeCritiqueElement = task.data
-        return [data.question, data.answer, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
+        return [data.question_id, data.question, data.answer, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
 import time
 from cheese import CHEESE
@@ -102,8 +108,9 @@ row_7 = ['110587', '113990', '125781', '127787', '129899', '132343', '133437', '
 row_8 = ['102335', '106393', '111155', '111516', '126211', '132394', '134427', '143470', '151116', '151806', '15219', '162745', '163752', '169648', '169711', '173024', '180543', '191926', '193371', '194598', '202753', '212276', '215852', '220940', '221725', '221930', '225119', '229921', '23180', '236739', '236879', '237601', '239217', '239338', '245438', '246002', '246160', '253628', '254721', '26008', '261013', '269428', '270567', '28985', '39270', '54935', '69813', '75535', '82165', '93546']
 row_9 = ['107033', '108057', '125263', '129412', '131765', '142734', '145033', '149867', '159183', '159427', '160931', '161321', '163195', '168795', '169349', '173588', '180429', '185693', '186181', '187150', '190554', '192944', '193505', '200094', '205666', '209327', '212599', '217008', '219477', '221325', '223910', '230024', '230446', '230691', '233288', '239982', '266124', '32894', '37698', '40466', '445', '62065', '69099', '79393', '83225', '8358', '88407', '92489', '92648', '98983']
 row_10 = ['107413', '111266', '121584', '124278', '1419', '148322', '166670', '171701', '174946', '175177', '180287', '181690', '188464', '197153', '19886', '206663', '215243', '215893', '220072', '229381', '231963', '234478', '238526', '238769', '239535', '242715', '243132', '244429', '24657', '252065', '253252', '254745', '260449', '260653', '262868', '28674', '31007', '31678', '32610', '35155', '41433', '42792', '46993', '57903', '63015', '68389', '68662', '7423', '78586', '87460']
+other_ids = []
 
-ignore_question_ids = row_1 + row_2 + row_3 + row_4 + row_5 + row_6 + row_7 + row_8 + row_9 + row_10
+ignore_question_ids = row_1 + row_2 + row_3 + row_4 + row_5 + row_6 + row_7 + row_8 + row_9 + row_10 + other_ids
 
 # what we don't want
 exclude_idx = []
@@ -112,7 +119,6 @@ for idx, row in enumerate(dataset):
     for ignore_question_id in ignore_question_ids:
         if row["question_id"] == ignore_question_id:
             exclude_idx.append(idx)
-            print(idx, row["question_id"])
 
 print(exclude_idx)
 
@@ -125,13 +131,12 @@ filtered_dataset = dataset.select(
     )
 )
 
-# TODO: shuffle rows of filtered dataset
-
-
 print(len(dataset))
 print(len(filtered_dataset))
 
-data = iter(dataset) # Cast to an iterator for IterablePipeline
+shuffled_filtered_dataset = filtered_dataset.shuffle(seed=43)
+
+data = iter(shuffled_filtered_dataset) # Cast to an iterator for IterablePipeline
 
 cheese = CHEESE(
     pipeline_cls = CodeCritiquePipeline,
@@ -140,8 +145,7 @@ cheese = CHEESE(
     pipeline_kwargs = {
         "iter" : data,
         "write_path" : "./code_critique_result.csv",
-        "force_new" : False,
-        "max_length" : 5
+        "force_new" : False
     }
 )
 
