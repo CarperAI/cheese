@@ -2,7 +2,7 @@ from cheese.data import BatchElement
 from dataclasses import dataclass
 
 @dataclass
-class SentimentElement(BatchElement):
+class CodeCritiqueElement(BatchElement):
     question : str = None
     answer : str = None
     code : str = None
@@ -10,23 +10,23 @@ class SentimentElement(BatchElement):
 
 from cheese.pipeline.iterable_dataset import IterablePipeline
 
-class SentimentPipeline(IterablePipeline):
+class CodeCritiquePipeline(IterablePipeline):
     def preprocess(self, data):
         question = data['body']
         answer = data['answer']['body']
         return {"question": question, "answer": answer}
 
-    def fetch(self) -> SentimentElement:
+    def fetch(self) -> CodeCritiqueElement:
         next_element = self.fetch_next()
         # TODO: exit here if no element
-        return SentimentElement(
+        return CodeCritiqueElement(
             question=next_element["question"],
             answer=next_element["answer"],
             code=next_element["answer"],
             critique=next_element["answer"]
         )
 
-    def post(self, data : SentimentElement):
+    def post(self, data : CodeCritiqueElement):
         row = {"question": data.question, "answer": data.answer, "code": data.code, "critique": data.critique}
         print("posting row: ")
         print(row)
@@ -35,7 +35,7 @@ class SentimentPipeline(IterablePipeline):
 from cheese.client.gradio_client import GradioFront
 import gradio as gr
 
-class SentimentFront(GradioFront):
+class CodeCritiqueFront(GradioFront):
     def main(self):
         with gr.Column():
             question = gr.Textbox(interactive = False, label = "Question")
@@ -69,47 +69,33 @@ class SentimentFront(GradioFront):
         return task
 
     def present(self, task):
-        data : SentimentElement = task.data
+        data : CodeCritiqueElement = task.data
         return [data.question, data.answer, data.code, data.critique] # Return list for gradio outputs
 
 from cheese import CHEESE
-import time
-
 from datasets import load_dataset
 
-dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python")
-# append ID col to dataset?
+dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python", split="train")
 
+# dataset = dataset.add_column("python_dataset_index", [0] * len(dataset))
+# for index in range(len(dataset)):
+#     dataset[index]["python_dataset_index"] = index
 
-# dataset['train'][0]['body'] # question
-# dataset['train'][0]['answer']['body'] # answer
-
-data = [
-    {"question": "The goose went to the store and was very happy", "answer": "positive sentiment"},
-    {"question": "The goose went to the store and was very sad", "answer": "negative sentiment"},
-    {"question": "The goose went to the farm and saw friends", "answer": "positive sentiment"},
-    {"question": "The goose went to the farm and got lost", "answer": "negative sentiment"},
-]
-
-data = iter(dataset['train']) # Cast to an iterator for IterablePipeline
+data = iter(dataset) # Cast to an iterator for IterablePipeline
 
 cheese = CHEESE(
-    pipeline_cls = SentimentPipeline,
-    client_cls = SentimentFront,
+    pipeline_cls = CodeCritiquePipeline,
+    client_cls = CodeCritiqueFront,
     gradio = True,
     pipeline_kwargs = {
         "iter" : data,
-        "write_path" : "./sentiment_result",
-        "force_new" : True,
+        "write_path" : "./code_critique_result",
+        "force_new" : False,
         "max_length" : 5
     }
 )
 
-print(cheese.launch()) # Prints the URL
+# For the API to function. More information below.
+print("CHEESE is now listening")
+cheese.start_listening()
 
-print(cheese.create_client(1)) # Create client with ID 1 and return a user/pass for them to use
-
-while not cheese.finished:
-    time.sleep(2)
-
-print("Done!")
