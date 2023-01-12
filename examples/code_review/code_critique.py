@@ -5,7 +5,8 @@ from dataclasses import dataclass
 class CodeCritiqueElement(BatchElement):
     question : str = None
     answer : str = None
-    code : str = None
+    original_code : str = None
+    refined_code : str = None
     critique : str = None
 
 from cheese.pipeline.iterable_dataset import IterablePipeline
@@ -22,12 +23,19 @@ class CodeCritiquePipeline(IterablePipeline):
         return CodeCritiqueElement(
             question=next_element["question"],
             answer=next_element["answer"],
-            code=next_element["answer"],
+            original_code=next_element["question"],
+            refined_code=next_element["answer"],
             critique=next_element["answer"]
         )
 
     def post(self, data : CodeCritiqueElement):
-        row = {"question": data.question, "answer": data.answer, "code": data.code, "critique": data.critique}
+        row = {
+            "question": data.question,
+            "answer": data.answer,
+            "original_code": data.original_code,
+            "refined_code": data.refined_code,
+            "critique": data.critique
+        }
         print("posting row: ")
         print(row)
         if not data.error: self.post_row(row)
@@ -40,24 +48,28 @@ class CodeCritiqueFront(GradioFront):
         with gr.Column():
             question = gr.Textbox(interactive = False, label = "Question")
             answer = gr.Textbox(interactive=False, label="Answer")
-            code = gr.Textbox(interactive=True, label="Code")
-            critique = gr.Textbox(interactive=True, label="Critique")
+            original_code = gr.Textbox(interactive=True, label="Extract Original Code From Question")
+            refined_code = gr.Textbox(interactive=True, label="Extract Refined Code From Answer")
+            critique = gr.Textbox(interactive=True, label="Extract Critique From Answer")
             btn = gr.Button("Submit")
 
         self.wrap_event(btn.click)(
-            self.response, inputs = [code, critique], outputs = [question, answer, code, critique]
+            self.response,
+            inputs = [original_code, refined_code, critique],
+            outputs = [question, answer, original_code, refined_code, critique]
         )
 
-        return [question, answer, code, critique]
+        return [question, answer, original_code, refined_code, critique]
 
     def receive(self, *inp):
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
-        _, task, code, critique = inp
-        task.data.code = code
+        _, task, original_code, refined_code, critique = inp
+        task.data.original_code = original_code
+        task.data.refined_code = refined_code
         task.data.critique = critique
-        task.data.error = (code is None or critique is None) # Error if the label wasn't selected
+        task.data.error = (original_code is None or refined_code is None or critique is None) # Error if the label wasn't selected
 
         # We can choose to raise an InvalidInputException here if we want to
         # By default, this would simply result in the same data being shown
@@ -70,8 +82,9 @@ class CodeCritiqueFront(GradioFront):
 
     def present(self, task):
         data : CodeCritiqueElement = task.data
-        return [data.question, data.answer, data.code, data.critique] # Return list for gradio outputs
+        return [data.question, data.answer, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
+import time
 from cheese import CHEESE
 from datasets import load_dataset
 
@@ -89,13 +102,18 @@ cheese = CHEESE(
     gradio = True,
     pipeline_kwargs = {
         "iter" : data,
-        "write_path" : "./code_critique_result",
+        "write_path" : "./code_critique_result.csv",
         "force_new" : False,
         "max_length" : 5
     }
 )
 
-# For the API to function. More information below.
-print("CHEESE is now listening")
-cheese.start_listening()
+print(cheese.launch()) # Prints the URL
 
+for i in range(1, 41):
+    print(cheese.create_client(i)) # Create client with ID 1 and return a user/pass for them to use
+
+while not cheese.finished:
+    time.sleep(2)
+
+print("Done!")
