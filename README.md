@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/453764663.svg)](https://zenodo.org/badge/latestdoi/453764663)
+
 [docs-image]: https://readthedocs.org/projects/cheese1/badge/?version=latest
 [docs-url]: https://cheese1.readthedocs.io/en/latest/?badge=latest
 
@@ -11,6 +13,15 @@ Used for adaptive human in the loop evaluation of language and embedding models.
 **[Documentation](https://cheese1.readthedocs.io)**
 
 # Getting Started
+
+First install the required packages:
+```
+git clone https://github.com/carperai/cheese
+cd cheese
+pip install -r requirements.txt
+```
+
+
 You need rabbitmq for the messaging system in the backend. It can be installed easily with conda as follows:
 ```
 conda install -c conda-forge rabbitmq-server

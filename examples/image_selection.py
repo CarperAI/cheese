@@ -90,15 +90,16 @@ class ImageSelectionFront(GradioFront):
             )
             error_btn = gr.Button("Press This If An Image Is Not Loading")
             error_btn.style(full_width = True)
-            with gr.Row():
-                with gr.Column():
+            with gr.Column():
+                with gr.Row():
                     im_left = gr.Image(show_label = False, shape = (256, 256))
+                    im_right = gr.Image(show_label = False, shape = (256, 256))
+                with gr.Row():
                     btn_left = gr.Button("Select Above")
                     btn_left.style(full_width = True)
-                with gr.Column():
-                    im_right = gr.Image(show_label = False, shape = (256, 256))
                     btn_right = gr.Button("Select Above")
                     btn_right.style(full_width = True)
+                    
 
         # Note how all button clicks call response, but with different arguments
         # The arguments to response will later be passed to self.receive(...)

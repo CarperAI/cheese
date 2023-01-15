@@ -42,17 +42,22 @@ class CHEESE:
 
     :param port: Port to run rabbitmq server on
     :type port: int
+    
+    :param debug: Print debug messages for rabbitmq
+    :type debug: bool
     """
     def __init__(
         self,
         pipeline_cls = None, client_cls = None, model_cls = None,
         pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
         gradio : bool = True, draw_always : bool = False,
-        host : str = 'localhost', port : int = 5672
+        host : str = 'localhost', port : int = 5672,
+        debug : bool = False
         ):
 
         self.gradio = gradio
         self.draw_always = draw_always
+        self.debug = debug
 
         # Initialize rabbit MQ server
         self.connection = BRabbit(host=host, port=port)
@@ -121,12 +126,9 @@ class CHEESE:
         self.url = url
         return url
     
-    def start_listening(self, verbose : bool = True, listen_every : float = 1.0):
+    def start_listening(self, listen_every : float = 1.0):
         """
         If using as a server, call this before running client.
-
-        :param verbose: Whether to print status updates
-        :type verbose: bool
 
         :param run_every: Listen for messages every x seconds
         """
@@ -136,8 +138,8 @@ class CHEESE:
         
         while True:
             if self.receive_buffer:
-                if verbose:
-                    print("Received a message", self.receive_buffer[0])
+                if self.debug:
+                    print(f"Responding to message: {self.receive_buffer[0]}")
                 msg = self.receive_buffer.pop(0).split("|")
                 if msg[0] == msg_constants.READY:
                     send(True)
@@ -167,6 +169,9 @@ class CHEESE:
         # - Remove client
         # - Get stats
         # - draw
+
+        if self.debug:
+            print(f"Received message from API: {pickle.loads(msg)}")
 
         try:
             self.receive_buffer.append(pickle.loads(msg))
