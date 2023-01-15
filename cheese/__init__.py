@@ -114,7 +114,8 @@ class CHEESE:
         if not self.launched:
             url = self.client_manager.init_front(self.client_cls)
         else:
-            raise Exception("CHEESE has already been launched")
+            print("Warning: CHEESE has already been launched")
+            return self.url
         
         self.launched = True
         self.url = url
