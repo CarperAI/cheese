@@ -120,7 +120,7 @@ class GradioClientManager(ClientManager):
                 print("Warning: Awaiting task for client that is not registered. Attempted to send terminate signal but failed.")
                 return None
         
-        # Check if the client had a task they were expected to have right now
+        # Check if the client had a task they were expected to have right now (i.e. from relogin case)
         if id in self.task_backup:
             return self.task_backup[id]
 
@@ -156,7 +156,7 @@ class GradioClientManager(ClientManager):
         # If they submitted a task, backup can be emptied
         if id in self.task_backup:
             del self.task_backup[id]
-            
+
         self.queue_task(id, task)
 
     def queue_task(self, id : int, task : Task):
