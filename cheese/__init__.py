@@ -45,6 +45,9 @@ class CHEESE:
     
     :param debug: Print debug messages for rabbitmq
     :type debug: bool
+
+    :param no_login: If true, users don't need password, only their ID, to log in
+    :type no_login: bool
     """
     def __init__(
         self,
@@ -52,7 +55,8 @@ class CHEESE:
         pipeline_kwargs : Dict[str, Any] = {}, model_kwargs : Dict[str, Any] = {},
         gradio : bool = True, draw_always : bool = False,
         host : str = 'localhost', port : int = 5672,
-        debug : bool = False
+        debug : bool = False,
+        no_login : bool = False
         ):
 
         self.gradio = gradio
@@ -93,7 +97,7 @@ class CHEESE:
 
         self.client_cls = client_cls
         if gradio:
-            self.client_manager = GradioClientManager()
+            self.client_manager = GradioClientManager(no_login = no_login)
         else:
             self.client_manager = ClientManager()
 
