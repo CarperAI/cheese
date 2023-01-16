@@ -37,4 +37,4 @@ if __name__ == "__main__":
     )
 
     print("Waiting on client...")
-    cheese.start_listening(verbose = True)
+    cheese.start_listening()

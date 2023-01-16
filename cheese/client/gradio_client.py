@@ -23,7 +23,9 @@ class GradioClientManager(ClientManager):
     """
     ClientManager for frontends made in Gradio
     """
-    def __init__(self):
+    def __init__(self, no_login : bool = False):
+        self.no_login = no_login
+
         # Rabbit connections
         self.publisher = None # to pipeline or model
         self.subscriber = None # get tasks (from pipeline)
@@ -36,14 +38,19 @@ class GradioClientManager(ClientManager):
         self.id_pass : Dict[int, int] = {} # [Client ID, Password]
         self.client_ids : Iterable[int] = []
 
-        self.client_tasks : Dict[int, Iterable[Task]]= {} # A stack of tasks for each client
+        self.client_tasks : Dict[int, Iterable[Task]]= {} # A stack of tasks to serve each client
         self.client_states : Dict[int, CS] = {} # The state of each client
         self.client_statistics : Dict[int, ClientStatistics] = {} # Stats on each client
 
         self.front : GradioFront = None
 
+        # Store a save of the task each client is currently working on in case
+        # they disconnect and relogin
+
+        self.task_backup : Dict[int, Task] = {}
+
     def init_front(self, front_cls) -> str:
-        self.front : GradioFront = front_cls()
+        self.front : GradioFront = front_cls(self.no_login)
         self.front.set_manager(self)
         self.front.launch()
         return self.front.demo.share_url
@@ -90,7 +97,7 @@ class GradioClientManager(ClientManager):
 
     def query_client(self, id : int, password : int):
         if id in self.id_pass:
-            if self.id_pass[id] == password:
+            if self.no_login or self.id_pass[id] == password:
                 return True
         return False
 
@@ -110,12 +117,18 @@ class GradioClientManager(ClientManager):
             try:
                 return Task(terminate = True)
             except:
-                raise Exception("Error: Awaiting task for client that is not registered. Attempted to send terminate signal but failed.")
+                print("Warning: Awaiting task for client that is not registered. Attempted to send terminate signal but failed.")
+                return None
+        
+        # Check if the client had a task they were expected to have right now (i.e. from relogin case)
+        if id in self.task_backup:
+            return self.task_backup[id]
 
         while True:
             if self.client_tasks[id]:
                 new_task : Task = self.client_tasks[id].pop(0)
                 new_task.data.start_time = time.time() # Mark time stamp for when task was sent to client
+                self.task_backup[id] = new_task
                 return new_task
 
             time.sleep(0.5)
@@ -139,6 +152,10 @@ class GradioClientManager(ClientManager):
             # Update our user stats with this
             self.client_statistics[id].total_time += task.data.end_time - task.data.start_time
             self.client_statistics[id].total_tasks += 1
+
+        # If they submitted a task, backup can be emptied
+        if id in self.task_backup:
+            del self.task_backup[id]
 
         self.queue_task(id, task)
 
@@ -225,8 +242,11 @@ class GradioClientManager(ClientManager):
 class GradioFront:
     """
     Frontend for CHEESE using Gradio
+
+    :param no_login: If True, will not require login. Useful for testing
+    :type no_login: bool
     """
-    def __init__(self):
+    def __init__(self, no_login : bool = False):
         self.manager : GradioClientManager = None
         with gr.Blocks() as self.demo:
             self.id : gr.State = gr.Variable(-1)
@@ -243,7 +263,7 @@ class GradioFront:
                 valid = True
                 try:
                     id = int(id.strip())
-                    pwd = int(pwd.strip())
+                    pwd = None if no_login else int(pwd.strip())
                 except:
                     valid = False
                 
