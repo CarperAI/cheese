@@ -69,7 +69,7 @@ class GradioClientManager(ClientManager):
         self.client_ids = list(self.id_pass.keys())
 
 
-    def add_client(self, id : int):
+    def add_client(self, id : int, pwd : str):
         """
         Add a new client. Creates a user/pass combo.
 
@@ -81,7 +81,8 @@ class GradioClientManager(ClientManager):
         self.client_tasks[id] = []
         self.client_states[id] = CS.IDLE
 
-        pwd = random.randrange(100000,999999)
+        if pwd is None:
+            pwd = random.randrange(100000000000, 999999999999)
 
         self.id_pass[id] = pwd
         self.client_ids.append(id)

@@ -200,7 +200,7 @@ class CHEESE:
         else:
             raise Exception("Error: Client pinged master with unknown message")
 
-    def create_client(self, id : int) -> Tuple[int, int]:
+    def create_client(self, id : int, pwd : int = None) -> Tuple[int, int]:
         """
         Create a client instance with given id.
         
@@ -210,7 +210,7 @@ class CHEESE:
         :return: Username and password user can use to log in to CHEESE
         """
 
-        id, pwd = self.client_manager.add_client(id)
+        id, pwd = self.client_manager.add_client(id, pwd)
         self.clients += 1
         self.draw() # pre-emptively draw a task for the client to pick up
         return id, pwd

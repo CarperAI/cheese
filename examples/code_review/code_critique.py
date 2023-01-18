@@ -95,6 +95,7 @@ class CodeCritiqueFront(GradioFront):
         data : CodeCritiqueElement = task.data
         return [data.question_id, data.question, data.answer, data.original_question, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
+import csv
 import time
 from cheese import CHEESE
 from datasets import load_dataset
@@ -125,7 +126,7 @@ for idx, row in enumerate(dataset):
         if row["question_id"] == ignore_question_id:
             exclude_idx.append(idx)
 
-print(exclude_idx)
+# print(exclude_idx)
 
 
 # create new dataset excluding those idx
@@ -156,8 +157,9 @@ cheese = CHEESE(
 
 print(cheese.launch()) # Prints the URL
 
-for i in range(1, 41):
-    print(cheese.create_client(i)) # Create client with ID 1 and return a user/pass for them to use
+with open("./cheese_users.csv", 'r') as data:
+    for line in csv.reader(data):
+        print(cheese.create_client(int(line[0]), int(line[1])))
 
 while not cheese.finished:
     time.sleep(2)
