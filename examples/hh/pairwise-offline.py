@@ -2,32 +2,29 @@ from cheese.data import BatchElement
 from dataclasses import dataclass
 
 @dataclass
-class SentimentElement(BatchElement):
+class PairwiseOfflineElement(BatchElement):
     prompt : str = None
     first_output : str = None
     second_output : str = None
     label : str = None
 
-    trip_max : int = 2
-
 
 from cheese.pipeline.iterable_dataset import IterablePipeline
 
-
-class SentimentPipeline(IterablePipeline):
+class PairwiseOfflinePipeline(IterablePipeline):
     def preprocess(self, x):
         return x # Don't need any changes here- it's just a string
 
-    def fetch(self) -> SentimentElement:
+    def fetch(self) -> PairwiseOfflineElement:
         next_element = self.fetch_next()
         # TODO: exit here if no element
-        return SentimentElement(
+        return PairwiseOfflineElement(
             prompt=next_element["prompt"],
             first_output=next_element["first_output"],
             second_output=next_element["second_output"],
         )
 
-    def post(self, data : SentimentElement):
+    def post(self, data : PairwiseOfflineElement):
         row = {"prompt": data.prompt, "first_output": data.first_output, "second_output": data.second_output, "label": data.label}
         print("posting row: ")
         print(row)
@@ -37,7 +34,7 @@ class SentimentPipeline(IterablePipeline):
 from cheese.client.gradio_client import GradioFront
 import gradio as gr
 
-class SentimentFront(GradioFront):
+class PairwiseOfflineFront(GradioFront):
     def main(self):
         with gr.Column():
             prompt = gr.Textbox(label = "Prompt")
@@ -70,10 +67,10 @@ class SentimentFront(GradioFront):
         return task
 
     def present(self, task):
-        data : SentimentElement = task.data
+        data : PairwiseOfflineElement = task.data
         return [data.prompt, data.first_output, data.second_output, data.label] # Return list for gradio outputs
 
-
+import csv
 from cheese import CHEESE
 import time
 from datasets import load_dataset
@@ -85,8 +82,8 @@ dataset = dataset.rename_column("rejected", "second_output")
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
 cheese = CHEESE(
-    pipeline_cls = SentimentPipeline,
-    client_cls = SentimentFront,
+    pipeline_cls = PairwiseOfflinePipeline,
+    client_cls = PairwiseOfflineFront,
     gradio = True,
     pipeline_kwargs = {
         "iter" : data,
@@ -97,9 +94,9 @@ cheese = CHEESE(
 
 print(cheese.launch()) # Prints the URL
 
-print(cheese.create_client(1)) # Create client with ID 1 and return a user/pass for them to use
-print(cheese.create_client(2))
-print(cheese.create_client(3))
+with open("./cheese_users.csv", 'r') as data:
+    for line in csv.reader(data):
+        print(cheese.create_client(int(line[0]), int(line[1])))
 
 while not cheese.finished:
     time.sleep(2)
