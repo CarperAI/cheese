@@ -25,7 +25,13 @@ class PairwiseOfflinePipeline(IterablePipeline):
         )
 
     def post(self, data : PairwiseOfflineElement):
-        row = {"prompt": data.prompt, "first_output": data.first_output, "second_output": data.second_output, "label": data.label}
+        row = {
+            "prompt": data.prompt,
+            "first_output": data.first_output,
+            "second_output": data.second_output,
+            "label": data.label,
+            "cheese_client_id": data.client_id,
+        }
         print("posting row: ")
         print(row)
         if not data.error: self.add_row_to_dataset(row)
