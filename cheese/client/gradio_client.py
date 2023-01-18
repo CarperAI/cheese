@@ -296,7 +296,10 @@ class GradioFront:
         self.demo.launch(
             share = True, quiet = True,
             prevent_thread_lock = True,
-            enable_queue = True
+            enable_queue = True,
+            # TODO: Add production flag
+            server_port = 80,
+            server_name = "0.0.0.0"
         )
 
     def set_manager(self, manager : GradioClientManager):
