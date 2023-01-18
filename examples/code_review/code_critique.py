@@ -6,6 +6,7 @@ class CodeCritiqueElement(BatchElement):
     question_id : str = None
     question : str = None
     answer : str = None
+    original_question : str = None
     original_code : str = None
     refined_code : str = None
     critique : str = None
@@ -26,6 +27,7 @@ class CodeCritiquePipeline(IterablePipeline):
             question_id=next_element["question_id"],
             question=next_element["question"],
             answer=next_element["answer"],
+            original_question=next_element["question"],
             original_code=next_element["question"],
             refined_code=next_element["answer"],
             critique=next_element["answer"]
@@ -36,6 +38,7 @@ class CodeCritiquePipeline(IterablePipeline):
             "question_id": data.question_id,
             "question": data.question,
             "answer": data.answer,
+            "original_question": data.original_question,
             "original_code": data.original_code,
             "refined_code": data.refined_code,
             "critique": data.critique,
@@ -54,6 +57,7 @@ class CodeCritiqueFront(GradioFront):
             question_id = gr.Textbox(interactive = False, label = "Question ID")
             question = gr.Textbox(interactive = False, label = "Question")
             answer = gr.Textbox(interactive=False, label="Answer")
+            original_question = gr.Textbox(interactive=True, label="Extract Question Text From Question")
             original_code = gr.Textbox(interactive=True, label="Extract Original Code From Question")
             refined_code = gr.Textbox(interactive=True, label="Extract Refined Code From Answer")
             critique = gr.Textbox(interactive=True, label="Extract Critique From Answer")
@@ -61,17 +65,18 @@ class CodeCritiqueFront(GradioFront):
 
         self.wrap_event(btn.click)(
             self.response,
-            inputs = [original_code, refined_code, critique],
-            outputs = [question_id, question, answer, original_code, refined_code, critique]
+            inputs = [original_question, original_code, refined_code, critique],
+            outputs = [question_id, question, answer, original_question, original_code, refined_code, critique]
         )
 
-        return [question_id, question, answer, original_code, refined_code, critique]
+        return [question_id, question, answer, original_question, original_code, refined_code, critique]
 
     def receive(self, *inp):
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
-        _, task, original_code, refined_code, critique = inp
+        _, task, original_question, original_code, refined_code, critique = inp
+        task.data.original_question = original_question
         task.data.original_code = original_code
         task.data.refined_code = refined_code
         task.data.critique = critique
@@ -88,7 +93,7 @@ class CodeCritiqueFront(GradioFront):
 
     def present(self, task):
         data : CodeCritiqueElement = task.data
-        return [data.question_id, data.question, data.answer, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
+        return [data.question_id, data.question, data.answer, data.original_question, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
 import time
 from cheese import CHEESE
