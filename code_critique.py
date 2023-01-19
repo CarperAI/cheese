@@ -7,6 +7,8 @@ import csv
 from datasets import load_dataset
 import gradio as gr
 import time
+import os
+
 
 @dataclass
 class CodeCritiqueElement(BatchElement):
@@ -117,14 +119,15 @@ previously_collected_ids = []
 
 # also exclude questions that have already been labeled (question_id exists in our output dataset)
 # so that if the server is restarted, we resume where we left off
-with open("./code_critique_result.csv", 'r') as data:
-    for line in csv.reader(data):
-        completed_question_id = line[0]
-        previously_collected_ids.append(completed_question_id)
-# remove csv header
-previously_collected_ids.remove(previously_collected_ids[0])
-print("length of previously_collected_ids", len(previously_collected_ids))
-print("previously_collected_ids", previously_collected_ids)
+if os.path.isfile("./code_critique_result.csv"):
+    with open("./code_critique_result.csv", 'r') as data:
+        for line in csv.reader(data):
+            completed_question_id = line[0]
+            previously_collected_ids.append(completed_question_id)
+    # remove csv header
+    previously_collected_ids.remove(previously_collected_ids[0])
+    print("length of previously_collected_ids", len(previously_collected_ids))
+    print("previously_collected_ids", previously_collected_ids)
 
 ignore_question_ids = row_1 + row_2 + row_3 + row_4 + row_5 + previously_collected_ids
 
