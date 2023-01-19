@@ -1,5 +1,12 @@
 from cheese.data import BatchElement
 from dataclasses import dataclass
+from cheese.pipeline.iterable_dataset import IterablePipeline
+from cheese.client.gradio_client import GradioFront
+from cheese import CHEESE
+import csv
+from datasets import load_dataset
+import gradio as gr
+import time
 
 @dataclass
 class CodeCritiqueElement(BatchElement):
@@ -11,7 +18,6 @@ class CodeCritiqueElement(BatchElement):
     refined_code : str = None
     critique : str = None
 
-from cheese.pipeline.iterable_dataset import IterablePipeline
 
 class CodeCritiquePipeline(IterablePipeline):
     def preprocess(self, data):
@@ -47,9 +53,6 @@ class CodeCritiquePipeline(IterablePipeline):
         print("posting row: ")
         print(row)
         if not data.error: self.post_row(row)
-
-from cheese.client.gradio_client import GradioFront
-import gradio as gr
 
 class CodeCritiqueFront(GradioFront):
     def main(self):
@@ -96,10 +99,6 @@ class CodeCritiqueFront(GradioFront):
         data : CodeCritiqueElement = task.data
         return [data.question_id, data.question, data.answer, data.original_question, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
-import csv
-import time
-from cheese import CHEESE
-from datasets import load_dataset
 
 # old dataset
 # dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python", split="train")
@@ -136,8 +135,6 @@ for idx, row in enumerate(dataset):
     for ignore_question_id in ignore_question_ids:
         if row["question_id"] == ignore_question_id:
             exclude_idx.append(idx)
-
-# print(exclude_idx)
 
 
 # create new dataset excluding those idx
