@@ -17,7 +17,7 @@ class CodeCritiquePipeline(IterablePipeline):
     def preprocess(self, data):
         question_id = data['question_id']
         question = data['body']
-        answer = data['answer']['body']
+        answer = data['answers'][0]['body']
         return {"question_id": question_id, "question": question, "answer": answer}
 
     def fetch(self) -> CodeCritiqueElement:
@@ -101,8 +101,10 @@ import time
 from cheese import CHEESE
 from datasets import load_dataset
 
-dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python", split="train")
-#dataset = load_dataset("Dahoas/base_code_review", split="train")
+# old dataset
+# dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python", split="train")
+# new dataset
+dataset = load_dataset("reshinthadith/2048_has_code_filtered_base_code_review_python_based_on_property", split="train")
 
 # These 500 indexes have already been or are in the process of being annotated, and should be removed from the dataset
 row_1 = ['105853', '109562', '110452', '112642', '116196', '138451', '139690', '152837', '161445', '163528', '169715', '181621', '182401', '185740', '186481', '189264', '196591', '197397', '202727', '204094', '209208', '209869', '211504', '216967', '223569', '227020', '230224', '23363', '234286', '236040', '241191', '242109', '243048', '243977', '247597', '247603', '248884', '250068', '256549', '265676', '270551', '30388', '37083', '47311', '48182', '4872', '49840', '8928', '90276', '93439']
@@ -111,11 +113,16 @@ row_3 = ['102674', '11317', '131689', '133723', '140018', '151895', '155610', '1
 row_4 = ['105441', '118197', '122970', '126100', '133514', '143307', '143869', '145512', '150324', '154374', '162988', '173105', '176840', '177041', '191795', '191861', '194727', '201483', '202222', '203700', '203842', '209462', '223471', '226209', '226455', '228969', '229071', '230180', '233702', '234846', '236865', '241487', '241658', '250090', '250463', '251359', '255989', '256197', '260585', '265990', '28647', '40784', '42420', '43175', '73554', '75710', '82432', '82784', '88645', '91496']
 row_5 = ['101348', '105883', '110769', '111684', '131804', '15395', '154534', '157698', '158049', '160277', '161273', '163898', '164709', '172929', '173049', '177960', '183763', '191988', '195672', '196034', '200425', '201472', '202480', '204792', '205474', '21033', '216653', '217235', '222772', '22968', '230972', '232981', '236229', '242894', '242951', '245982', '24836', '255491', '256319', '259665', '27821', '32449', '43981', '45458', '5548', '57715', '60540', '70989', '88783', '94776']
 
-# also exclude questions that have already been labeled (question_id exists in our output dataset)
 
-other_ids = []
+previously_collected_ids = []
 
-ignore_question_ids = row_1 + row_2 + row_3 + row_4 + row_5 + other_ids
+# TODO: also exclude questions that have already been labeled (question_id exists in our output dataset)
+# so that if the server is restarted, we resume where we left off
+# with open("./code_critique_result.csv", 'r') as data:
+#     for line in csv.reader(data):
+#
+
+ignore_question_ids = row_1 + row_2 + row_3 + row_4 + row_5 + previously_collected_ids
 
 # what we don't want
 exclude_idx = []
@@ -136,8 +143,8 @@ filtered_dataset = dataset.select(
     )
 )
 
-print(len(dataset))
-print(len(filtered_dataset))
+print("length of dataset: ", len(dataset))
+print("length of filtered dataset: ", len(filtered_dataset))
 
 shuffled_filtered_dataset = filtered_dataset.shuffle(seed=43)
 
