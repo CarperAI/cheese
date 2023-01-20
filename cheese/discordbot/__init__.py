@@ -96,8 +96,12 @@ async def on_reaction_add(reaction, user):
         # Make a random 8 digit number as id
         cheese_id = random.randint(10000000, 99999999)
         # Append to file
-        with open(USER_FILE_PATH, 'a') as f:
-            f.write(f"{user.id}:{cheese_id}")
+        try:
+            with open(USER_FILE_PATH, 'a') as f:
+                f.write(f"{user.id}:{cheese_id}\n")
+        except:
+            with open(USER_FILE_PATH, 'w') as f:
+                f.write(f"{user.id}:{cheese_id}\n")
         f.close()
         
         # Send a DM to the user who reacted with some login info and append it to file
