@@ -33,7 +33,8 @@ if __name__ == "__main__":
         ImageSelectionPipeline, ImageSelectionFront,
         pipeline_kwargs = {
             "iter" : make_iter(), "write_path" : "./img_dataset_res", "force_new" : True, "max_length" : 5
-        }
+        },
+        no_login = True
     )
 
     print("Waiting on client...")
