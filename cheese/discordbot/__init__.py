@@ -14,7 +14,7 @@ def get_consts():
         admin_id is id for role that will be able to use admin commands
         user_file is path of file to store user names to
     """
-    with open('cheesebot.txt', 'r') as f:
+    with open('cheesebot_cfg.txt', 'r') as f:
         token = f.readline().strip()
         server_id = int(f.readline().strip())
         admin_id = int(f.readline().strip())
@@ -46,6 +46,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    global active_msg
     # Only respond to messages in server_id
     if message.guild.id != SERVER_ID:
         return
@@ -53,14 +54,18 @@ async def on_message(message):
     if not any([role.id == ADMIN_ID for role in message.author.roles]):
         return
     # only respond to messages that start with '!cheese'
-    if not message.content.startswith('!cheese'):
+    if not message.content.startswith("!cheese"):
         return
+
+    print("Received message")
 
     if message.content == "!cheese ping":
         await message.channel.send("pong")
     
     if message.content == "!cheese launch":
         url = api.launch()
+        print("Launched demo")
+
 
     if message.content == "!cheese stats":
         stats = api.get_stats()
@@ -69,20 +74,21 @@ async def on_message(message):
         await message.channel.send(f"CHEESE experiment is currently running with {n_clients} clients, who have collectively labelled {n_tasks} examples.")
     if message.content == "!cheese getusers":
         new_msg = await message.channel.send(f"Collecting users for CHEESE experiment! Please react to this message with a cheese emoji to be sent login information.")
-        # React to the message we just sent 
-        await new_msg.add_reaction('🧀')
         active_msg = new_msg
+        await new_msg.add_reaction('🧀')
+        
 
 # For reacts
 
 @client.event
 async def on_reaction_add(reaction, user):
     url = api.get_stats()["url"]
-    if reaction.message.id == active_msg.id:
+    print("Detected  reaction")
+    if reaction.message.id == active_msg.id and reaction.emoji == '🧀':
+        print("Valid reaction")
         # Check if this user has already been added
         if user.id in get_file_as_dict(USER_FILE_PATH):
             await user.send(f"You have already been added to the CHEESE experiment! Your id is {get_file_as_dict(USER_FILE_PATH)[user.id]}. You can login at {url}")
-
             return
         # Make a random 8 digit number as id
         cheese_id = random.randint(10000000, 99999999)
@@ -94,5 +100,7 @@ async def on_reaction_add(reaction, user):
         # Send a DM to the user who reacted with some login info and append it to file
         
         await user.send(f"Here is your login ID for the CHEESE experiment: {cheese_id}. Join at {url}.")
+        api.create_client(cheese_id)
+
 
 client.run(TOKEN)
