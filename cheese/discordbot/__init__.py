@@ -31,6 +31,8 @@ def get_file_as_dict(path):
     d = {}
     for line in lines:
         key, value = line.split(':')
+        key = int(key)
+        value = int(value.strip())
         d[key] = value
     return d
 
@@ -39,6 +41,7 @@ TOKEN, SERVER_ID, ADMIN_ID, USER_FILE_PATH = get_consts()
 client = discord.Client()
 api = CHEESEAPI()
 active_msg = None
+launched = False
 
 @client.event
 async def on_ready():
@@ -47,6 +50,8 @@ async def on_ready():
 @client.event
 async def on_message(message):
     global active_msg
+    global launched
+    
     if message.guild is None:
         # It's a DM
         return
@@ -66,33 +71,55 @@ async def on_message(message):
         await message.channel.send("pong")
     
     if message.content == "!cheese launch":
-        url = api.launch()
+        if api.get_stats()['url'] is None:
+            url = api.launch()
         print("Launched demo")
 
+        # Check if the USER_FILE_PATH file exists
+        if os.path.exists(USER_FILE_PATH):
+            # For each user present in the file, check if they are a client
+            user_dict = get_file_as_dict(USER_FILE_PATH)
+            client_ids = [int(user_dict[key]) for key in user_dict]
+            
+            stats = api.get_stats()['client_stats']
+            def is_client(client_id):
+                return client_id in stats
+            
+            for id in client_ids:
+                if not is_client(id):
+                    api.create_client(id)
+        
+        launched = True
+        return
 
     if message.content == "!cheese stats":
         stats = api.get_stats()
         n_clients = stats['num_clients']
         n_tasks = stats['num_tasks']
         await message.channel.send(f"CHEESE experiment is currently running with {n_clients} clients, who have collectively labelled {n_tasks} examples.")
+        return
+    
     if message.content == "!cheese getusers":
         new_msg = await message.channel.send(f"Collecting users for CHEESE experiment! Please react to this message with a cheese emoji to be sent login information.")
         active_msg = new_msg
         await new_msg.add_reaction('🧀')
+        return
         
-
 # For reacts
 
 @client.event
 async def on_reaction_add(reaction, user):
     url = api.get_stats()["url"]
     print("Detected  reaction")
-    if reaction.message.id == active_msg.id and reaction.emoji == '🧀':
+    if reaction.message.id == active_msg.id and reaction.emoji == '🧀' and not user.bot:
         print("Valid reaction")
         # Check if this user has already been added
-        if user.id in get_file_as_dict(USER_FILE_PATH):
-            await user.send(f"You have already been added to the CHEESE experiment! Your id is {get_file_as_dict(USER_FILE_PATH)[user.id]}. You can login at {url}")
-            return
+        try:
+            if user.id in get_file_as_dict(USER_FILE_PATH):
+                await user.send(f"You have already been added to the CHEESE experiment! Your id is {get_file_as_dict(USER_FILE_PATH)[user.id]}. You can login at {url}")
+                return
+        except:
+            pass
         # Make a random 8 digit number as id
         cheese_id = random.randint(10000000, 99999999)
         # Append to file
