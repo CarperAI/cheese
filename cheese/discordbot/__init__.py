@@ -47,6 +47,9 @@ async def on_ready():
 @client.event
 async def on_message(message):
     global active_msg
+    if message.guild is None:
+        # It's a DM
+        return
     # Only respond to messages in server_id
     if message.guild.id != SERVER_ID:
         return
