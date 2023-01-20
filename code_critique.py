@@ -180,14 +180,4 @@ cheese = CHEESE(
     }
 )
 
-print(cheese.launch()) # Prints the URL
-
-
-while not cheese.finished:
-    cheesebot_users = get_file_as_dict("./cheesebot_users") # user file
-    for discord_user, cheese_id in cheesebot_users.items():
-        if cheese.client_manager.client_ids.count(int(cheese_id)) <= 0:
-            cheese.create_client(int(cheese_id), int(cheese_id))
-    time.sleep(2)
-
-print("Done!")
+cheese.start_listening()
