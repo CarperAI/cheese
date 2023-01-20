@@ -111,7 +111,9 @@ async def on_message(message):
 
 @client.event
 async def on_reaction_add(reaction, user):
-    url = api.get_stats()["url"]
+    # TODO: add production flag
+    url = "http://164.92.123.184/"
+    # url = api.get_stats()["url"]
     print("Detected  reaction")
     if reaction.message.id == active_msg.id and reaction.emoji == '🧀' and not user.bot:
         print("Valid reaction")
