@@ -168,16 +168,18 @@ shuffled_filtered_dataset = filtered_dataset.shuffle(seed=43)
 
 data = iter(shuffled_filtered_dataset) # Cast to an iterator for IterablePipeline
 
-cheese = CHEESE(
-    pipeline_cls = CodeCritiquePipeline,
-    client_cls = CodeCritiqueFront,
-    gradio = True,
-    no_login = True,
-    pipeline_kwargs = {
-        "iter" : data,
-        "write_path" : "./code_critique_result.csv",
-        "force_new" : False,
-    }
-)
+if __name__ == "__main__":
+    cheese = CHEESE(
+        pipeline_cls = CodeCritiquePipeline,
+        client_cls = CodeCritiqueFront,
+        gradio = True,
+        no_login = True,
+        pipeline_kwargs = {
+            "iter" : data,
+            "write_path" : "./code_critique_result.csv",
+            "force_new" : False,
+        }
+    )
 
-cheese.start_listening()
+    cheese.launch()
+    cheese.start_listening()

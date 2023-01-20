@@ -31,6 +31,8 @@ def get_file_as_dict(path):
     d = {}
     for line in lines:
         key, value = line.split(':')
+        key = int(key)
+        value = int(value.strip())
         d[key] = value
     return d
 
@@ -49,7 +51,6 @@ async def on_ready():
 async def on_message(message):
     global active_msg
     global launched
-    global my_id
 
     if message.guild is None:
         # It's a DM
@@ -117,10 +118,11 @@ async def on_reaction_add(reaction, user):
         # Check if this user has already been added
         try:
             if user.id in get_file_as_dict(USER_FILE_PATH):
-                await user.send(f"You have already been added to the CHEESE experiment! Your id is {get_file_as_dict(USER_FILE_PATH)[user.id]}. You can login at {url}")
+                client_id = get_file_as_dict(USER_FILE_PATH)[user.id]
+                await user.send(f"You have already been added to the CHEESE experiment! You can login at {url}. Your ID is:")
+                await user.send(f"{client_id}")
                 return
-        except Exception as e:
-            print(e.traceback())
+        except:
             pass
         # Make a random 8 digit number as id
         cheese_id = random.randint(10000000, 99999999)
@@ -135,7 +137,8 @@ async def on_reaction_add(reaction, user):
         
         # Send a DM to the user who reacted with some login info and append it to file
         
-        await user.send(f"Here is your login ID for the CHEESE experiment: {cheese_id}. Join at {url}.")
+        await user.send(f"You can login to the experiment at {url}. Please use the following ID to login:")
+        await user.send(f"{cheese_id}")
         api.create_client(cheese_id)
 
 

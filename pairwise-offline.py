@@ -86,24 +86,27 @@ dataset = dataset.rename_column("rejected", "second_output")
 
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
-cheese = CHEESE(
-    pipeline_cls = PairwiseOfflinePipeline,
-    client_cls = PairwiseOfflineFront,
-    gradio = True,
-    pipeline_kwargs = {
-        "iter" : data,
-        "write_path" : "./pairwise_offline_result.csv",
-        "force_new" : False
-    }
-)
+if __name__ == "__main__":
+    cheese = CHEESE(
+        pipeline_cls = PairwiseOfflinePipeline,
+        client_cls = PairwiseOfflineFront,
+        gradio = True,
+        pipeline_kwargs = {
+            "iter" : data,
+            "write_path" : "./pairwise_offline_result.csv",
+            "force_new" : False
+        }
+    )
 
-print(cheese.launch()) # Prints the URL
+    print(cheese.launch()) # Prints the URL
+    cheese.start_listening()
+    exit()
 
-with open("./cheese_users.csv", 'r') as data:
-    for line in csv.reader(data):
-        print(cheese.create_client(int(line[0]), int(line[1])))
+    with open("./cheese_users.csv", 'r') as data:
+        for line in csv.reader(data):
+            print(cheese.create_client(int(line[0]), int(line[1])))
 
-while not cheese.finished:
-    time.sleep(2)
+    while not cheese.finished:
+        time.sleep(2)
 
-print("Done!")
+    print("Done!")
