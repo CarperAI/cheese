@@ -71,7 +71,7 @@ async def on_message(message):
         return
     
     if message.content == "!cheese launch":
-        if api.get_stats()['url'] is not None:
+        if api.get_stats()['url'] is None:
             url = api.launch()
         print("Launched demo")
 
