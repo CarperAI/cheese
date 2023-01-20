@@ -1,5 +1,13 @@
+from cheese import CHEESE
 from cheese.data import BatchElement
+from cheese.pipeline.iterable_dataset import IterablePipeline
+from cheese.client.gradio_client import GradioFront
+import csv
 from dataclasses import dataclass
+from datasets import load_dataset
+import gradio as gr
+import time
+
 
 @dataclass
 class PairwiseOfflineElement(BatchElement):
@@ -8,8 +16,6 @@ class PairwiseOfflineElement(BatchElement):
     second_output : str = None
     label : str = None
 
-
-from cheese.pipeline.iterable_dataset import IterablePipeline
 
 class PairwiseOfflinePipeline(IterablePipeline):
     def preprocess(self, x):
@@ -36,9 +42,6 @@ class PairwiseOfflinePipeline(IterablePipeline):
         print(row)
         if not data.error: self.add_row_to_dataset(row)
 
-
-from cheese.client.gradio_client import GradioFront
-import gradio as gr
 
 class PairwiseOfflineFront(GradioFront):
     def main(self):
@@ -76,10 +79,6 @@ class PairwiseOfflineFront(GradioFront):
         data : PairwiseOfflineElement = task.data
         return [data.prompt, data.first_output, data.second_output, data.label] # Return list for gradio outputs
 
-import csv
-from cheese import CHEESE
-import time
-from datasets import load_dataset
 
 dataset = load_dataset("Dahoas/synthetic-instruct-gptj-pairwise", split="train")
 dataset = dataset.rename_column("chosen", "first_output")
