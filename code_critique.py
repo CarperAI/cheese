@@ -101,6 +101,19 @@ class CodeCritiqueFront(GradioFront):
         data : CodeCritiqueElement = task.data
         return [data.question_id, data.question, data.answer, data.original_question, data.original_code, data.refined_code, data.critique] # Return list for gradio outputs
 
+def get_file_as_dict(path):
+    """
+        Read a file as a dictionary
+        Each line should be of the form key:value
+    """
+    with open(path, 'r') as f:
+        lines = f.readlines()
+    d = {}
+    for line in lines:
+        key, value = line.split(':')
+        d[key] = value
+    return d
+
 
 # old dataset
 # dataset = load_dataset("Dahoas/code-review-instruct-critique-revision-python", split="train")
@@ -159,20 +172,22 @@ cheese = CHEESE(
     pipeline_cls = CodeCritiquePipeline,
     client_cls = CodeCritiqueFront,
     gradio = True,
+    no_login = True,
     pipeline_kwargs = {
         "iter" : data,
         "write_path" : "./code_critique_result.csv",
-        "force_new" : False
+        "force_new" : False,
     }
 )
 
 print(cheese.launch()) # Prints the URL
 
-with open("./cheese_users.csv", 'r') as data:
-    for line in csv.reader(data):
-        cheese.create_client(int(line[0]), int(line[1]))
 
 while not cheese.finished:
+    cheesebot_users = get_file_as_dict("./cheesebot_users") # user file
+    for discord_user, cheese_id in cheesebot_users.items():
+        if cheese.client_manager.client_ids.count(int(cheese_id)) <= 0:
+            cheese.create_client(int(cheese_id), int(cheese_id))
     time.sleep(2)
 
 print("Done!")
