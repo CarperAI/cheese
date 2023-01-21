@@ -59,7 +59,7 @@ class CodeCritiquePipeline(IterablePipeline):
 class CodeCritiqueFront(GradioFront):
     def main(self):
         with gr.Column():
-            gr.HTML("<p>Please read the annotation guidelines <a href=\"https://github.com/CarperAI/CodeReviewSE/blob/main/Annotation_Guidelines.md#annotation-guidelines-for-the-code-review-dataset\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
+            gr.HTML("<p><strong style=\"font-size: larger;\">Please read the annotation guidelines <a href=\"https://github.com/CarperAI/CodeReviewSE/blob/main/Annotation_Guidelines.md#annotation-guidelines-for-the-code-review-dataset\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</strong></p>")
             question_id = gr.Textbox(interactive = False, label = "Question ID")
             question = gr.Textbox(interactive = False, label = "Question")
             answer = gr.Textbox(interactive=False, label="Answer")
