@@ -15,11 +15,11 @@ class PairwiseOfflineElement(BatchElement):
     prompt : str = None
     first_output : str = None
     first_output_correctness : str = None
-    first_output_diverseness : str = None
+    first_output_responsiveness : str = None
     first_output_harmfulness : str = None
     second_output : str = None
     second_output_correctness : str = None
-    second_output_diverseness : str = None
+    second_output_responsiveness : str = None
     second_output_harmfulness : str = None
     label : str = None
     label_explanation : str = None
@@ -52,7 +52,7 @@ class PairwiseOfflinePipeline(IterablePipeline):
         if data.swapped == "True":
             data.first_output, data.second_output = self.swap(data.first_output, data.second_output)
             data.first_output_correctness, data.second_output_correctness = self.swap(data.first_output_correctness, data.second_output_correctness)
-            data.first_output_diverseness, data.second_output_diverseness = self.swap(data.first_output_diverseness, data.second_output_diverseness)
+            data.first_output_responsiveness, data.second_output_responsiveness = self.swap(data.first_output_responsiveness, data.second_output_responsiveness)
             data.first_output_harmfulness, data.second_output_harmfulness = self.swap(data.first_output_harmfulness, data.second_output_harmfulness)
             swapped_label = ""
             if data.label == "Response A is better.":
@@ -66,11 +66,11 @@ class PairwiseOfflinePipeline(IterablePipeline):
             "prompt": data.prompt,
             "first_output": data.first_output,
             "first_output_correctness": data.first_output_correctness,
-            "first_output_diverseness": data.first_output_diverseness,
+            "first_output_responsiveness": data.first_output_responsiveness,
             "first_output_harmfulness": data.first_output_harmfulness,
             "second_output": data.second_output,
             "second_output_correctness": data.second_output_correctness,
-            "second_output_diverseness": data.second_output_diverseness,
+            "second_output_responsiveness": data.second_output_responsiveness,
             "second_output_harmfulness": data.second_output_harmfulness,
             "label": data.label,
             "label_explanation" : data.label_explanation,
@@ -96,9 +96,9 @@ class PairwiseOfflineFront(GradioFront):
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
                 label = "Is this response correct?"
             )
-            first_output_diverseness = gr.Radio(
+            first_output_responsiveness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response diverse?"
+                label = "How responsive is this response to answering the prompt?"
             )
             first_output_harmfulness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
@@ -110,17 +110,17 @@ class PairwiseOfflineFront(GradioFront):
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
                 label = "Is this response correct?"
             )
-            second_output_diverseness = gr.Radio(
+            second_output_responsiveness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response diverse?"
+                label = "How responsive is this response to answering the prompt?"
             )
             second_output_harmfulness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
                 label = "Is this response harmful?"
             )
         with gr.Column():
-            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is better?", visible = True)
-            label_explanation = gr.Textbox(label="Please explain why the response you chose is better.", visible=False, value=None)
+            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is the most helpful response to the prompt?", visible = True)
+            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.", visible=False, value=None)
         with gr.Column():
             button = gr.Button("Submit")
 
@@ -128,10 +128,10 @@ class PairwiseOfflineFront(GradioFront):
             self.response,
             inputs = [
                 first_output_correctness,
-                first_output_diverseness,
+                first_output_responsiveness,
                 first_output_harmfulness,
                 second_output_correctness,
-                second_output_diverseness,
+                second_output_responsiveness,
                 second_output_harmfulness,
                 label,
                 label_explanation
@@ -142,11 +142,11 @@ class PairwiseOfflineFront(GradioFront):
                 html_description,
                 first_output,
                 first_output_correctness,
-                first_output_diverseness,
+                first_output_responsiveness,
                 first_output_harmfulness,
                 second_output,
                 second_output_correctness,
-                second_output_diverseness,
+                second_output_responsiveness,
                 second_output_harmfulness,
                 label,
                 label_explanation,
@@ -160,11 +160,11 @@ class PairwiseOfflineFront(GradioFront):
             html_description,
             first_output,
             first_output_correctness,
-            first_output_diverseness,
+            first_output_responsiveness,
             first_output_harmfulness,
             second_output,
             second_output_correctness,
-            second_output_diverseness,
+            second_output_responsiveness,
             second_output_harmfulness,
             label,
             label_explanation,
@@ -175,22 +175,22 @@ class PairwiseOfflineFront(GradioFront):
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
-        _, task, first_output_correctness, first_output_diverseness, first_output_harmfulness, second_output_correctness, second_output_diverseness, second_output_harmfulness, label, label_explanation = inp
+        _, task, first_output_correctness, first_output_responsiveness, first_output_harmfulness, second_output_correctness, second_output_responsiveness, second_output_harmfulness, label, label_explanation = inp
         task.data.first_output_correctness = first_output_correctness
-        task.data.first_output_diverseness = first_output_diverseness
+        task.data.first_output_responsiveness = first_output_responsiveness
         task.data.first_output_harmfulness = first_output_harmfulness
         task.data.second_output_correctness = second_output_correctness
-        task.data.second_output_diverseness = second_output_diverseness
+        task.data.second_output_responsiveness = second_output_responsiveness
         task.data.second_output_harmfulness = second_output_harmfulness
         task.data.label = label
         task.data.label_explanation = label_explanation
 
         task.data.error = (
                 first_output_correctness is None or
-                first_output_diverseness is None or
+                first_output_responsiveness is None or
                 first_output_harmfulness is None or
                 second_output_correctness is None or
-                second_output_diverseness is None or
+                second_output_responsiveness is None or
                 second_output_harmfulness is None or
                 label is None
         ) # Error if the inputs haven't been selected
@@ -219,11 +219,11 @@ class PairwiseOfflineFront(GradioFront):
             data.html_description = gr.update(value="<p style=\"font-size: larger; text-align: center;\">You have completed the study. Your prolific code is: SBR-839.</p>")
             data.first_output = gr.update(visible=False)
             data.first_output_correctness = gr.update(visible=False)
-            data.first_output_diverseness = gr.update(visible=False)
+            data.first_output_responsiveness = gr.update(visible=False)
             data.first_output_harmfulness = gr.update(visible=False)
             data.second_output = gr.update(visible=False)
             data.second_output_correctness = gr.update(visible=False)
-            data.second_output_diverseness = gr.update(visible=False)
+            data.second_output_responsiveness = gr.update(visible=False)
             data.second_output_harmfulness = gr.update(visible=False)
             data.label = gr.update(visible=False)
             data.label_explanation = gr.update(visible=False)
@@ -239,11 +239,11 @@ class PairwiseOfflineFront(GradioFront):
             data.html_description,
             data.first_output,
             data.first_output_correctness,
-            data.first_output_diverseness,
+            data.first_output_responsiveness,
             data.first_output_harmfulness,
             data.second_output,
             data.second_output_correctness,
-            data.second_output_diverseness,
+            data.second_output_responsiveness,
             data.second_output_harmfulness,
             data.label,
             data.label_explanation,
@@ -317,8 +317,6 @@ with open(result_filepath, 'r') as data:
 # TODO: display end of study code after 30min of feedback collection
 
 # TODO: read prolific IDs from URL parameters
-
-# TODO: replace diverseness with something else
 
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
