@@ -249,7 +249,13 @@ class GradioFront:
     """
     def __init__(self, no_login : bool = False):
         self.manager : GradioClientManager = None
-        with gr.Blocks() as self.demo:
+        with gr.Blocks(
+                title="Cheese",
+                css="\
+                .gradio-container { display: flex; justify-content: center; } \
+                .gradio-container * { max-width: 680px !important; } \
+                .col.gr-gap > *:not(.absolute) + * { margin-top: 1.75rem; }"
+        ) as self.demo:
             self.id : gr.State = gr.Variable(-1)
             self.task : gr.State = gr.Variable(None)
 
@@ -294,7 +300,8 @@ class GradioFront:
             raise Exception("Error: Tried to lanuch frontend without connecting it to a client manager. Please use GradioFront.set_manager()")
         
         self.demo.launch(
-            share = True, quiet = True,
+            share = True,
+            quiet = True,
             prevent_thread_lock = True,
             enable_queue = True,
             # TODO: Add production flag

@@ -7,19 +7,31 @@ from dataclasses import dataclass
 from datasets import load_dataset
 import gradio as gr
 import time
-
+import random
 
 @dataclass
 class PairwiseOfflineElement(BatchElement):
+    original_dataset_index : str = None
     prompt : str = None
     first_output : str = None
+    first_output_correctness : str = None
+    first_output_diverseness : str = None
+    first_output_harmfulness : str = None
     second_output : str = None
+    second_output_correctness : str = None
+    second_output_diverseness : str = None
+    second_output_harmfulness : str = None
     label : str = None
+    label_explanation : str = None
+    swapped : str = None
 
 
 class PairwiseOfflinePipeline(IterablePipeline):
-    def preprocess(self, x):
-        return x # Don't need any changes here- it's just a string
+    def preprocess(self, row):
+        # remove "prompt" object nesting
+        row['first_output'] = row['first_output']['response']
+        row['second_output'] = row['second_output']['response']
+        return row
 
     def fetch(self) -> PairwiseOfflineElement:
         next_element = self.fetch_next()
@@ -30,13 +42,40 @@ class PairwiseOfflinePipeline(IterablePipeline):
             second_output=next_element["second_output"],
         )
 
+    def swap(self, a, b):
+        temp = a
+        a = b
+        b = temp
+        return a, b
+
     def post(self, data : PairwiseOfflineElement):
+        if data.swapped == "True":
+            data.first_output, data.second_output = self.swap(data.first_output, data.second_output)
+            data.first_output_correctness, data.second_output_correctness = self.swap(data.first_output_correctness, data.second_output_correctness)
+            data.first_output_diverseness, data.second_output_diverseness = self.swap(data.first_output_diverseness, data.second_output_diverseness)
+            data.first_output_harmfulness, data.second_output_harmfulness = self.swap(data.first_output_harmfulness, data.second_output_harmfulness)
+            swapped_label = ""
+            if data.label == "Response A is better.":
+                swapped_label = "Response B is better."
+            elif data.label == "Response B is better.":
+                swapped_label = "Response A is better."
+            data.label = swapped_label
+
         row = {
+            "original_dataset_index": data.original_dataset_index,
             "prompt": data.prompt,
             "first_output": data.first_output,
+            "first_output_correctness": data.first_output_correctness,
+            "first_output_diverseness": data.first_output_diverseness,
+            "first_output_harmfulness": data.first_output_harmfulness,
             "second_output": data.second_output,
+            "second_output_correctness": data.second_output_correctness,
+            "second_output_diverseness": data.second_output_diverseness,
+            "second_output_harmfulness": data.second_output_harmfulness,
             "label": data.label,
+            "label_explanation" : data.label_explanation,
             "cheese_client_id": data.client_id,
+            "elapsed_seconds": float(data.end_time) - float(data.start_time),
         }
         print("posting row: ")
         print(row)
@@ -46,25 +85,115 @@ class PairwiseOfflinePipeline(IterablePipeline):
 class PairwiseOfflineFront(GradioFront):
     def main(self):
         with gr.Column():
-            prompt = gr.Textbox(label = "Prompt")
-            first_output = gr.Textbox(label = "First response")
-            second_output = gr.Textbox(label = "Second response")
-            label = gr.Radio(["First", "Second"], label = "Which response do you prefer?", visible = True)
-            btn = gr.Button("Submit")
+            html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://github.com/\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
+        with gr.Column():
+            prompt = gr.Textbox(label = "Dialogue with an AI Assistant")
+        with gr.Column():
+            html_description = gr.HTML("<p>Two possible responses from the AI are listed below</p>")
+        with gr.Column():
+            first_output = gr.Textbox(label = "Response A")
+            first_output_correctness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response correct?"
+            )
+            first_output_diverseness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response diverse?"
+            )
+            first_output_harmfulness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response harmful?"
+            )
+        with gr.Column():
+            second_output = gr.Textbox(label = "Response B")
+            second_output_correctness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response correct?"
+            )
+            second_output_diverseness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response diverse?"
+            )
+            second_output_harmfulness = gr.Radio(
+                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
+                label = "Is this response harmful?"
+            )
+        with gr.Column():
+            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is better?", visible = True)
+            label_explanation = gr.Textbox(label="Please explain why the response you chose is better.", visible=False, value=None)
+        with gr.Column():
+            button = gr.Button("Submit")
 
-        self.wrap_event(btn.click)(
-            self.response, inputs = [label], outputs = [prompt, first_output, second_output, label]
+        self.wrap_event(button.click)(
+            self.response,
+            inputs = [
+                first_output_correctness,
+                first_output_diverseness,
+                first_output_harmfulness,
+                second_output_correctness,
+                second_output_diverseness,
+                second_output_harmfulness,
+                label,
+                label_explanation
+            ],
+            outputs = [
+                html_headline,
+                prompt,
+                html_description,
+                first_output,
+                first_output_correctness,
+                first_output_diverseness,
+                first_output_harmfulness,
+                second_output,
+                second_output_correctness,
+                second_output_diverseness,
+                second_output_harmfulness,
+                label,
+                label_explanation,
+                button
+            ]
         )
 
-        return [prompt, first_output, second_output, label]
+        return [
+            html_headline,
+            prompt,
+            html_description,
+            first_output,
+            first_output_correctness,
+            first_output_diverseness,
+            first_output_harmfulness,
+            second_output,
+            second_output_correctness,
+            second_output_diverseness,
+            second_output_harmfulness,
+            label,
+            label_explanation,
+            button
+        ]
 
     def receive(self, *inp):
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
-        _, task, label = inp
+        _, task, first_output_correctness, first_output_diverseness, first_output_harmfulness, second_output_correctness, second_output_diverseness, second_output_harmfulness, label, label_explanation = inp
+        task.data.first_output_correctness = first_output_correctness
+        task.data.first_output_diverseness = first_output_diverseness
+        task.data.first_output_harmfulness = first_output_harmfulness
+        task.data.second_output_correctness = second_output_correctness
+        task.data.second_output_diverseness = second_output_diverseness
+        task.data.second_output_harmfulness = second_output_harmfulness
         task.data.label = label
-        task.data.error = (label is None) # Error if the label wasn't selected
+        task.data.label_explanation = label_explanation
+
+        task.data.error = (
+                first_output_correctness is None or
+                first_output_diverseness is None or
+                first_output_harmfulness is None or
+                second_output_correctness is None or
+                second_output_diverseness is None or
+                second_output_harmfulness is None or
+                label is None
+        ) # Error if the inputs haven't been selected
 
         # We can choose to raise an InvalidInputException here if we want to
         # By default, this would simply result in the same data being shown
@@ -77,12 +206,119 @@ class PairwiseOfflineFront(GradioFront):
 
     def present(self, task):
         data : PairwiseOfflineElement = task.data
-        return [data.prompt, data.first_output, data.second_output, data.label] # Return list for gradio outputs
+
+        if random.randint(0, 5) == 0:
+            data.label_explanation = gr.update(visible=True)
+        else:
+            data.label_explanation = gr.update(visible=False)
+
+        study_has_ended = False
+        if study_has_ended == True:
+            data.html_headline = gr.update(visible=False)
+            data.prompt = gr.update(visible=False)
+            data.html_description = gr.update(value="<p style=\"font-size: larger; text-align: center;\">You have completed the study. Your prolific code is: SBR-839.</p>")
+            data.first_output = gr.update(visible=False)
+            data.first_output_correctness = gr.update(visible=False)
+            data.first_output_diverseness = gr.update(visible=False)
+            data.first_output_harmfulness = gr.update(visible=False)
+            data.second_output = gr.update(visible=False)
+            data.second_output_correctness = gr.update(visible=False)
+            data.second_output_diverseness = gr.update(visible=False)
+            data.second_output_harmfulness = gr.update(visible=False)
+            data.label = gr.update(visible=False)
+            data.label_explanation = gr.update(visible=False)
+            data.button = gr.update(visible=False)
+        else:
+            data.html_headline = gr.update(visible=True)
+            data.html_description = gr.update(visible=True)
+            data.button = gr.update(visible=True)
+
+        return [
+            data.html_headline,
+            data.prompt,
+            data.html_description,
+            data.first_output,
+            data.first_output_correctness,
+            data.first_output_diverseness,
+            data.first_output_harmfulness,
+            data.second_output,
+            data.second_output_correctness,
+            data.second_output_diverseness,
+            data.second_output_harmfulness,
+            data.label,
+            data.label_explanation,
+            data.button
+        ] # Return list for gradio outputs
 
 
-dataset = load_dataset("Dahoas/synthetic-instruct-gptj-pairwise", split="train")
-dataset = dataset.rename_column("chosen", "first_output")
-dataset = dataset.rename_column("rejected", "second_output")
+random.seed(43)
+
+# Synthetic Anthropic Helpful Static Dataset****
+# For these tasks, half of the prompts are natural, half are synthetic.
+
+# 125M
+dataset = load_dataset("Dahoas/125M_hybrid_comparison", split="train")
+result_filepath = "./125M_hybrid_comparison_result.csv"
+dataset = dataset.rename_column("125M", "first_output")
+dataset = dataset.rename_column("125M_synthetic", "second_output")
+
+# 1B
+# dataset = load_dataset("Dahoas/1B_hybrid_comparison", split="train")
+# result_filepath = "./1B_hybrid_comparison_result.csv"
+# dataset = dataset.rename_column("1B", "first_output")
+# dataset = dataset.rename_column("1B_synthetic", "second_output")
+
+# 6B
+# dataset = load_dataset("Dahoas/6B_hybrid_comparison", split="train")
+# result_filepath = "./6B_hybrid_comparison_result.csv"
+# dataset = dataset.rename_column("6B", "first_output")
+# dataset = dataset.rename_column("6B_synthetic", "second_output")
+
+# 20B
+# dataset = load_dataset("Dahoas/20B_hybrid_comparison", split="train")
+# result_filepath = "./20B_hybrid_comparison_result.csv"
+# dataset = dataset.rename_column("20B", "first_output")
+# dataset = dataset.rename_column("20B_synthetic", "second_output")
+
+
+# add original index to rows
+def add_row_index_column(row, idx):
+    row["original_dataset_index"] = idx
+    return row
+
+
+dataset = dataset.map(add_row_index_column, with_indices=True)
+
+
+# shuffle columns with seed
+def shuffle_columns(row):
+    if (random.randint(0,1) >= 1):
+        row["swapped"] = True
+        temp = row["first_output"]
+        row["first_output"] = row["second_output"]
+        row["second_output"] = temp
+    else:
+        row["swapped"] = False
+    return row
+
+
+dataset = dataset.map(shuffle_columns)
+
+
+# skip previously completed entries
+original_dataset_indices_to_exclude = []
+with open(result_filepath, 'r') as data:
+    for line in csv.reader(data):
+        original_dataset_index = line[0]
+        original_dataset_indices_to_exclude.append(original_dataset_index)
+
+
+
+# TODO: display end of study code after 30min of feedback collection
+
+# TODO: read prolific IDs from URL parameters
+
+# TODO: replace diverseness with something else
 
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
@@ -93,20 +329,19 @@ if __name__ == "__main__":
         gradio = True,
         pipeline_kwargs = {
             "iter" : data,
-            "write_path" : "./pairwise_offline_result.csv",
+            "write_path" : result_filepath,
             "force_new" : False
         }
     )
 
     print(cheese.launch()) # Prints the URL
-    cheese.start_listening()
-    exit()
 
+    # create 40 test users from the pre-generated cheese_users.csv db
     with open("./cheese_users.csv", 'r') as data:
         for line in csv.reader(data):
-            print(cheese.create_client(int(line[0]), int(line[1])))
+            cheese.create_client(int(line[0]), int(line[1]))
 
-    while not cheese.finished:
-        time.sleep(2)
+    print(cheese.create_client(1, 1))
 
-    print("Done!")
+    cheese.start_listening()
+    exit()
