@@ -197,8 +197,8 @@ class PairwiseOfflineFront(GradioFront):
                 label is None
         ) # Error if the inputs haven't been selected
 
-        if task.data.error:
-            raise InvalidInputException(*inp)
+        # if task.data.error:
+        #     raise InvalidInputException(*inp)
 
         # We can choose to raise an InvalidInputException here if we want to
         # By default, this would simply result in the same data being shown
