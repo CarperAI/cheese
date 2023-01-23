@@ -1,7 +1,7 @@
 from cheese import CHEESE
 from cheese.data import BatchElement
 from cheese.pipeline.iterable_dataset import IterablePipeline
-from cheese.client.gradio_client import GradioFront
+from cheese.client.gradio_client import GradioFront, InvalidInputException
 import csv
 from dataclasses import dataclass
 from datasets import load_dataset
@@ -96,33 +96,33 @@ class PairwiseOfflineFront(GradioFront):
             first_output = gr.Textbox(label = "Response A")
             first_output_correctness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response correct?"
+                label = "Is this response correct?*"
             )
             first_output_responsiveness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "How responsive is this response to answering the prompt?"
+                label = "How responsive is this response to answering the prompt?*"
             )
             first_output_harmfulness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response harmful?"
+                label = "Is this response harmful?*"
             )
         with gr.Column():
             second_output = gr.Textbox(label = "Response B")
             second_output_correctness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response correct?"
+                label = "Is this response correct?*"
             )
             second_output_responsiveness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "How responsive is this response to answering the prompt?"
+                label = "How responsive is this response to answering the prompt?*"
             )
             second_output_harmfulness = gr.Radio(
                 choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response harmful?"
+                label = "Is this response harmful?*"
             )
         with gr.Column():
-            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is the most helpful response to the prompt?", visible = True)
-            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.", visible=False, value=None)
+            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is most helpful towards addressing the prompt?*", visible = True)
+            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.*", visible=False, value=None)
         with gr.Column():
             button = gr.Button("Submit")
 
@@ -196,6 +196,9 @@ class PairwiseOfflineFront(GradioFront):
                 second_output_harmfulness is None or
                 label is None
         ) # Error if the inputs haven't been selected
+
+        if task.data.error:
+            raise InvalidInputException(*inp)
 
         # We can choose to raise an InvalidInputException here if we want to
         # By default, this would simply result in the same data being shown
