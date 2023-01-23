@@ -8,6 +8,8 @@ from datasets import load_dataset
 import gradio as gr
 import time
 import random
+import os
+
 
 @dataclass
 class PairwiseOfflineElement(BatchElement):
@@ -85,7 +87,7 @@ class PairwiseOfflinePipeline(IterablePipeline):
 class PairwiseOfflineFront(GradioFront):
     def main(self):
         with gr.Column():
-            html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://github.com/\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
+            html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://docs.google.com/document/d/1R8RTZPClxe_4MwXX4B_BgcFgnbv1ynjZatVr3c7YmUo/edit\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
         with gr.Column():
             prompt = gr.Textbox(label = "Dialogue with an AI Assistant")
         with gr.Column():
@@ -257,10 +259,10 @@ random.seed(43)
 # For these tasks, half of the prompts are natural, half are synthetic.
 
 # 125M
-dataset = load_dataset("Dahoas/125M_hybrid_comparison", split="train")
-result_filepath = "./125M_hybrid_comparison_result.csv"
-dataset = dataset.rename_column("125M", "first_output")
-dataset = dataset.rename_column("125M_synthetic", "second_output")
+# dataset = load_dataset("Dahoas/125M_hybrid_comparison", split="train")
+# result_filepath = "./125M_hybrid_comparison_result.csv"
+# dataset = dataset.rename_column("125M", "first_output")
+# dataset = dataset.rename_column("125M_synthetic", "second_output")
 
 # 1B
 # dataset = load_dataset("Dahoas/1B_hybrid_comparison", split="train")
@@ -275,10 +277,10 @@ dataset = dataset.rename_column("125M_synthetic", "second_output")
 # dataset = dataset.rename_column("6B_synthetic", "second_output")
 
 # 20B
-# dataset = load_dataset("Dahoas/20B_hybrid_comparison", split="train")
-# result_filepath = "./20B_hybrid_comparison_result.csv"
-# dataset = dataset.rename_column("20B", "first_output")
-# dataset = dataset.rename_column("20B_synthetic", "second_output")
+dataset = load_dataset("Dahoas/20B_hybrid_comparison", split="train")
+result_filepath = "./20B_hybrid_comparison_result.csv"
+dataset = dataset.rename_column("20B", "first_output")
+dataset = dataset.rename_column("20B_synthetic", "second_output")
 
 
 # add original index to rows
@@ -307,11 +309,17 @@ dataset = dataset.map(shuffle_columns)
 
 # skip previously completed entries
 original_dataset_indices_to_exclude = []
-with open(result_filepath, 'r') as data:
-    for line in csv.reader(data):
-        original_dataset_index = line[0]
-        original_dataset_indices_to_exclude.append(original_dataset_index)
+if os.path.isfile(result_filepath):
+    with open(result_filepath, 'r') as data:
+        for line in csv.reader(data):
+            original_dataset_index = line[0]
+            original_dataset_indices_to_exclude.append(original_dataset_index)
 
+# create new dataset excluding those idx
+dataset = dataset.select((
+        i for i in range(len(dataset))
+        if i not in set(original_dataset_indices_to_exclude)
+    ))
 
 
 # TODO: display end of study code after 30min of feedback collection
@@ -337,9 +345,7 @@ if __name__ == "__main__":
     # create 40 test users from the pre-generated cheese_users.csv db
     with open("./cheese_users.csv", 'r') as data:
         for line in csv.reader(data):
-            cheese.create_client(int(line[0]), int(line[1]))
-
-    print(cheese.create_client(1, 1))
+            print(cheese.create_client(int(line[0]), int(line[1])))
 
     cheese.start_listening()
     exit()
