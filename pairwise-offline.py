@@ -253,13 +253,22 @@ class PairwiseOfflineFront(GradioFront):
         else:
             data.label_explanation = gr.update(visible=False)
 
-        client_id = int(self.column.parent.parent.children[2].children[1].value)
+        user_id_idx = None
+        print_attributes(self.column.parent.parent.children[2].children)
+        for idx, child in enumerate(self.column.parent.parent.children[2].children):
+            if child.label == 'User ID':
+                user_id_idx = idx
+
         study_has_ended = False
-        if client_id > 0:
-            total_time = self.manager.client_statistics[client_id].total_time
-            total_tasks = self.manager.client_statistics[client_id].total_tasks
-            study_has_ended = total_tasks > 19
-            print(total_time, total_tasks)
+        if user_id_idx is not None:
+            print_attributes(self.column.parent.parent.children[2].children[user_id_idx])
+            if self.column.parent.parent.children[2].children[1].value is not None:
+                client_id = int(self.column.parent.parent.children[2].children[1].value)
+                if client_id > 0:
+                    total_time = self.manager.client_statistics[client_id].total_time
+                    total_tasks = self.manager.client_statistics[client_id].total_tasks
+                    study_has_ended = total_tasks > 19
+                    print(total_time, total_tasks)
 
         if study_has_ended is True:
             data.html_headline = gr.update(visible=False)
