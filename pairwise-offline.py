@@ -102,6 +102,11 @@ class PairwiseOfflinePipeline(IterablePipeline):
 
 
 class PairwiseOfflineFront(GradioFront):
+    def validate(self, *inp):
+        print_attributes(inp)
+        print(len(inp))
+        return inp
+
     def main(self):
         with gr.Column() as self.column:
             html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://docs.google.com/document/d/1R8RTZPClxe_4MwXX4B_BgcFgnbv1ynjZatVr3c7YmUo/edit\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
@@ -146,7 +151,42 @@ class PairwiseOfflineFront(GradioFront):
                 label = "Response B is harmful?:*"
             )
         with gr.Column():
-            button = gr.Button("Submit")
+            button = gr.Button(value="Submit", elem_id="submitButton")
+
+        inputs = [
+            first_output_correctness,
+            first_output_helpfulness,
+            first_output_harmfulness,
+            second_output_correctness,
+            second_output_helpfulness,
+            second_output_harmfulness,
+            label,
+            label_explanation
+        ]
+
+        outputs = [
+            html_headline,
+            prompt,
+            html_description,
+            first_output,
+            first_output_correctness,
+            first_output_helpfulness,
+            first_output_harmfulness,
+            second_output,
+            second_output_correctness,
+            second_output_helpfulness,
+            second_output_harmfulness,
+            label,
+            label_explanation,
+            button
+        ]
+
+        # TODO: validation
+        second_output_harmfulness.change(
+            self.validate,
+            outputs,
+            outputs
+        )
 
         self.wrap_event(button.click)(
             self.response,
@@ -253,22 +293,28 @@ class PairwiseOfflineFront(GradioFront):
         else:
             data.label_explanation = gr.update(visible=False)
 
-        user_id_idx = None
-        print_attributes(self.column.parent.parent.children[2].children)
-        for idx, child in enumerate(self.column.parent.parent.children[2].children):
-            if child.label == 'User ID':
-                user_id_idx = idx
+
+        print_attributes(self.column.parent.parent)
+
+
+        # user_id_idx = None
+        # user_id = None
+        # print_attributes(self.column.parent.parent.children[2].children)
+        # for idx, child in enumerate(self.column.parent.parent.children[2].children):
+        #     if child.label == 'User ID':
+        #         print("child:")
+        #         print_attributes(child)
+        #         user_id_idx = idx
+        #         user_id = child.value if int(child.value.strip()).is_integer() else None
 
         study_has_ended = False
-        if user_id_idx is not None:
-            print_attributes(self.column.parent.parent.children[2].children[user_id_idx])
-            if self.column.parent.parent.children[2].children[1].value is not None:
-                client_id = int(self.column.parent.parent.children[2].children[1].value)
-                if client_id > 0:
-                    total_time = self.manager.client_statistics[client_id].total_time
-                    total_tasks = self.manager.client_statistics[client_id].total_tasks
-                    study_has_ended = total_tasks > 19
-                    print(total_time, total_tasks)
+        # if user_id is not None:
+        #     client_id = int(self.column.parent.parent.children[2].children[1].value)
+        #     if client_id > 0:
+        #         total_time = self.manager.client_statistics[client_id].total_time
+        #         total_tasks = self.manager.client_statistics[client_id].total_tasks
+        #         study_has_ended = total_tasks > 19
+        #         print(total_time, total_tasks)
 
         if study_has_ended is True:
             data.html_headline = gr.update(visible=False)
