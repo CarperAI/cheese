@@ -10,6 +10,21 @@ import time
 import random
 import os
 
+import re
+from pprint import pprint
+from inspect import getmembers
+from types import FunctionType
+
+def attributes(obj):
+    disallowed_names = {
+      name for name, value in getmembers(type(obj))
+        if isinstance(value, FunctionType)}
+    return {
+      name: getattr(obj, name) for name in dir(obj)
+        if name[0] != '_' and name not in disallowed_names and hasattr(obj, name)}
+
+def print_attributes(obj):
+    pprint(attributes(obj))
 
 @dataclass
 class PairwiseOfflineElement(BatchElement):
@@ -25,6 +40,7 @@ class PairwiseOfflineElement(BatchElement):
     second_output_harmfulness : str = None
     label : str = None
     label_explanation : str = None
+    prolific_id : str = None
     swapped : str = None
 
 
@@ -57,10 +73,10 @@ class PairwiseOfflinePipeline(IterablePipeline):
             data.first_output_responsiveness, data.second_output_responsiveness = self.swap(data.first_output_responsiveness, data.second_output_responsiveness)
             data.first_output_harmfulness, data.second_output_harmfulness = self.swap(data.first_output_harmfulness, data.second_output_harmfulness)
             swapped_label = ""
-            if data.label == "Response A is better.":
-                swapped_label = "Response B is better."
-            elif data.label == "Response B is better.":
-                swapped_label = "Response A is better."
+            if data.label == "A":
+                swapped_label = "B"
+            elif data.label == "B":
+                swapped_label = "A"
             data.label = swapped_label
 
         row = {
@@ -76,6 +92,7 @@ class PairwiseOfflinePipeline(IterablePipeline):
             "second_output_harmfulness": data.second_output_harmfulness,
             "label": data.label,
             "label_explanation" : data.label_explanation,
+            "prolific_id" : data.prolific_id,
             "cheese_client_id": data.client_id,
             "elapsed_seconds": float(data.end_time) - float(data.start_time),
         }
@@ -86,7 +103,7 @@ class PairwiseOfflinePipeline(IterablePipeline):
 
 class PairwiseOfflineFront(GradioFront):
     def main(self):
-        with gr.Column():
+        with gr.Column() as self.column:
             html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://docs.google.com/document/d/1R8RTZPClxe_4MwXX4B_BgcFgnbv1ynjZatVr3c7YmUo/edit\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
         with gr.Column():
             prompt = gr.Textbox(label = "Dialogue with an AI Assistant")
@@ -94,35 +111,37 @@ class PairwiseOfflineFront(GradioFront):
             html_description = gr.HTML("<p>Two possible responses from the AI are listed below</p>")
         with gr.Column():
             first_output = gr.Textbox(label = "Response A")
-            first_output_correctness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response correct?*"
-            )
-            first_output_responsiveness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "How responsive is this response to answering the prompt?*"
-            )
-            first_output_harmfulness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response harmful?*"
-            )
         with gr.Column():
             second_output = gr.Textbox(label = "Response B")
-            second_output_correctness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response correct?*"
+        with gr.Column():
+            label = gr.Radio(["A", "B"], label = "Which of the two responses is most helpful towards addressing the prompt?:*", visible = True)
+            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.*", visible=False, value=None)
+        with gr.Column():
+            first_output_correctness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response A is factually correct:*"
             )
-            second_output_responsiveness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "How responsive is this response to answering the prompt?*"
+            first_output_responsiveness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response A is helpful towards answering the prompt?: *"
             )
-            second_output_harmfulness = gr.Radio(
-                choices = ["disagree", "mostly disagree", "unsure", "mostly agree", "agree"],
-                label = "Is this response harmful?*"
+            first_output_harmfulness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response A is harmful?:*"
             )
         with gr.Column():
-            label = gr.Radio(["Response A is better.", "Response B is better."], label = "Which of the two responses is most helpful towards addressing the prompt?*", visible = True)
-            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.*", visible=False, value=None)
+            second_output_correctness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response B is factually correct:*"
+            )
+            second_output_responsiveness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response B is helpful towards answering the prompt?:*"
+            )
+            second_output_harmfulness = gr.Radio(
+                choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
+                label = "Response B is harmful?:*"
+            )
         with gr.Column():
             button = gr.Button("Submit")
 
@@ -174,6 +193,18 @@ class PairwiseOfflineFront(GradioFront):
         ]
 
     def receive(self, *inp):
+        prolific_id = None
+        # print_attributes(self.column.parent.parent.server.server_state.connections)
+        for connection in self.column.parent.parent.server.server_state.connections:
+            if connection.scheme == "http":
+                # print_attributes(connection)
+                query_string = connection.scope["query_string"].decode('utf-8')
+                # print(query_string)
+                if re.search('prolific_id', query_string):
+                    prolific_id = query_string
+
+        print(prolific_id)
+
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
@@ -186,6 +217,7 @@ class PairwiseOfflineFront(GradioFront):
         task.data.second_output_harmfulness = second_output_harmfulness
         task.data.label = label
         task.data.label_explanation = label_explanation
+        task.data.prolific_id = prolific_id
 
         task.data.error = (
                 first_output_correctness is None or
@@ -327,8 +359,6 @@ dataset = dataset.select((
 
 # TODO: display end of study code after 30min of feedback collection
 
-# TODO: read prolific IDs from URL parameters
-
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
 if __name__ == "__main__":
@@ -349,6 +379,9 @@ if __name__ == "__main__":
     with open("./cheese_users.csv", 'r') as data:
         for line in csv.reader(data):
             print(cheese.create_client(int(line[0]), int(line[1])))
+            #pass
+
+    #print(cheese.create_client(1, 1))
 
     cheese.start_listening()
     exit()
