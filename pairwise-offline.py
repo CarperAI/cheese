@@ -106,16 +106,19 @@ class PairwiseOfflineFront(GradioFront):
         with gr.Column() as self.column:
             html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://docs.google.com/document/d/1R8RTZPClxe_4MwXX4B_BgcFgnbv1ynjZatVr3c7YmUo/edit\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
         with gr.Column():
-            prompt = gr.Textbox(label = "Dialogue with an AI Assistant")
+            prompt = gr.TextArea(label = "Dialogue with an AI Assistant", max_lines=100, interactive=False)
         with gr.Column():
             html_description = gr.HTML("<p>Two possible responses from the AI are listed below</p>")
         with gr.Column():
-            first_output = gr.Textbox(label = "Response A")
+            first_output = gr.TextArea(label = "Response A", max_lines=100, interactive=False)
         with gr.Column():
-            second_output = gr.Textbox(label = "Response B")
+            second_output = gr.TextArea(label = "Response B", max_lines=100, interactive=False)
         with gr.Column():
-            label = gr.Radio(["A", "B"], label = "Which of the two responses is most helpful towards addressing the prompt?:*", visible = True)
-            label_explanation = gr.Textbox(label="Please explain why the response you chose is more helpful.*", visible=False, value=None)
+            label = gr.Radio(
+                choices=["A", "B"],
+                label = "Which of the two responses is most helpful towards addressing the prompt?:*", visible = True
+            )
+            label_explanation = gr.TextArea(label="Please explain why the response you chose is more helpful.*", visible=False, value=None, interactive=True)
         with gr.Column():
             first_output_correctness = gr.Radio(
                 choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
@@ -250,8 +253,15 @@ class PairwiseOfflineFront(GradioFront):
         else:
             data.label_explanation = gr.update(visible=False)
 
+        client_id = int(self.column.parent.parent.children[2].children[1].value)
         study_has_ended = False
-        if study_has_ended == True:
+        if client_id > 0:
+            total_time = self.manager.client_statistics[client_id].total_time
+            total_tasks = self.manager.client_statistics[client_id].total_tasks
+            study_has_ended = total_tasks > 15
+            print(total_time, total_tasks)
+
+        if study_has_ended is True:
             data.html_headline = gr.update(visible=False)
             data.prompt = gr.update(visible=False)
             data.html_description = gr.update(value="<p style=\"font-size: larger; text-align: center;\">You have completed the study. Your prolific code is: SBR-839.</p>")
@@ -356,9 +366,6 @@ dataset = dataset.select((
         i for i in range(len(dataset))
         if i not in set(original_dataset_indices_to_exclude)
     ))
-
-
-# TODO: display end of study code after 30min of feedback collection
 
 data = iter(dataset) # Cast to an iterator for IterablePipeline
 
