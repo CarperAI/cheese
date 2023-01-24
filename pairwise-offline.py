@@ -32,11 +32,11 @@ class PairwiseOfflineElement(BatchElement):
     prompt : str = None
     first_output : str = None
     first_output_correctness : str = None
-    first_output_responsiveness : str = None
+    first_output_helpfulness : str = None
     first_output_harmfulness : str = None
     second_output : str = None
     second_output_correctness : str = None
-    second_output_responsiveness : str = None
+    second_output_helpfulness : str = None
     second_output_harmfulness : str = None
     label : str = None
     label_explanation : str = None
@@ -70,7 +70,7 @@ class PairwiseOfflinePipeline(IterablePipeline):
         if data.swapped == "True":
             data.first_output, data.second_output = self.swap(data.first_output, data.second_output)
             data.first_output_correctness, data.second_output_correctness = self.swap(data.first_output_correctness, data.second_output_correctness)
-            data.first_output_responsiveness, data.second_output_responsiveness = self.swap(data.first_output_responsiveness, data.second_output_responsiveness)
+            data.first_output_helpfulness, data.second_output_helpfulness = self.swap(data.first_output_helpfulness, data.second_output_helpfulness)
             data.first_output_harmfulness, data.second_output_harmfulness = self.swap(data.first_output_harmfulness, data.second_output_harmfulness)
             swapped_label = ""
             if data.label == "A":
@@ -84,11 +84,11 @@ class PairwiseOfflinePipeline(IterablePipeline):
             "prompt": data.prompt,
             "first_output": data.first_output,
             "first_output_correctness": data.first_output_correctness,
-            "first_output_responsiveness": data.first_output_responsiveness,
+            "first_output_helpfulness": data.first_output_helpfulness,
             "first_output_harmfulness": data.first_output_harmfulness,
             "second_output": data.second_output,
             "second_output_correctness": data.second_output_correctness,
-            "second_output_responsiveness": data.second_output_responsiveness,
+            "second_output_helpfulness": data.second_output_helpfulness,
             "second_output_harmfulness": data.second_output_harmfulness,
             "label": data.label,
             "label_explanation" : data.label_explanation,
@@ -121,7 +121,7 @@ class PairwiseOfflineFront(GradioFront):
                 choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
                 label = "Response A is factually correct:*"
             )
-            first_output_responsiveness = gr.Radio(
+            first_output_helpfulness = gr.Radio(
                 choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
                 label = "Response A is helpful towards answering the prompt?: *"
             )
@@ -134,7 +134,7 @@ class PairwiseOfflineFront(GradioFront):
                 choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
                 label = "Response B is factually correct:*"
             )
-            second_output_responsiveness = gr.Radio(
+            second_output_helpfulness = gr.Radio(
                 choices = ["Strong disagree", "Disagree", "Unsure", "Agree", "Strong agree"],
                 label = "Response B is helpful towards answering the prompt?:*"
             )
@@ -149,10 +149,10 @@ class PairwiseOfflineFront(GradioFront):
             self.response,
             inputs = [
                 first_output_correctness,
-                first_output_responsiveness,
+                first_output_helpfulness,
                 first_output_harmfulness,
                 second_output_correctness,
-                second_output_responsiveness,
+                second_output_helpfulness,
                 second_output_harmfulness,
                 label,
                 label_explanation
@@ -163,11 +163,11 @@ class PairwiseOfflineFront(GradioFront):
                 html_description,
                 first_output,
                 first_output_correctness,
-                first_output_responsiveness,
+                first_output_helpfulness,
                 first_output_harmfulness,
                 second_output,
                 second_output_correctness,
-                second_output_responsiveness,
+                second_output_helpfulness,
                 second_output_harmfulness,
                 label,
                 label_explanation,
@@ -181,11 +181,11 @@ class PairwiseOfflineFront(GradioFront):
             html_description,
             first_output,
             first_output_correctness,
-            first_output_responsiveness,
+            first_output_helpfulness,
             first_output_harmfulness,
             second_output,
             second_output_correctness,
-            second_output_responsiveness,
+            second_output_helpfulness,
             second_output_harmfulness,
             label,
             label_explanation,
@@ -193,6 +193,7 @@ class PairwiseOfflineFront(GradioFront):
         ]
 
     def receive(self, *inp):
+        # TODO: test and clean this up
         prolific_id = None
         # print_attributes(self.column.parent.parent.server.server_state.connections)
         for connection in self.column.parent.parent.server.server_state.connections:
@@ -208,12 +209,12 @@ class PairwiseOfflineFront(GradioFront):
         # Receive gets a list of inputs which consist of
         # [id, task, *inputs], where *inputs is the gradio inputs
         # in this case, the gradio inputs are just the radio selection
-        _, task, first_output_correctness, first_output_responsiveness, first_output_harmfulness, second_output_correctness, second_output_responsiveness, second_output_harmfulness, label, label_explanation = inp
+        _, task, first_output_correctness, first_output_helpfulness, first_output_harmfulness, second_output_correctness, second_output_helpfulness, second_output_harmfulness, label, label_explanation = inp
         task.data.first_output_correctness = first_output_correctness
-        task.data.first_output_responsiveness = first_output_responsiveness
+        task.data.first_output_helpfulness = first_output_helpfulness
         task.data.first_output_harmfulness = first_output_harmfulness
         task.data.second_output_correctness = second_output_correctness
-        task.data.second_output_responsiveness = second_output_responsiveness
+        task.data.second_output_helpfulness = second_output_helpfulness
         task.data.second_output_harmfulness = second_output_harmfulness
         task.data.label = label
         task.data.label_explanation = label_explanation
@@ -221,10 +222,10 @@ class PairwiseOfflineFront(GradioFront):
 
         task.data.error = (
                 first_output_correctness is None or
-                first_output_responsiveness is None or
+                first_output_helpfulness is None or
                 first_output_harmfulness is None or
                 second_output_correctness is None or
-                second_output_responsiveness is None or
+                second_output_helpfulness is None or
                 second_output_harmfulness is None or
                 label is None
         ) # Error if the inputs haven't been selected
@@ -256,11 +257,11 @@ class PairwiseOfflineFront(GradioFront):
             data.html_description = gr.update(value="<p style=\"font-size: larger; text-align: center;\">You have completed the study. Your prolific code is: SBR-839.</p>")
             data.first_output = gr.update(visible=False)
             data.first_output_correctness = gr.update(visible=False)
-            data.first_output_responsiveness = gr.update(visible=False)
+            data.first_output_helpfulness = gr.update(visible=False)
             data.first_output_harmfulness = gr.update(visible=False)
             data.second_output = gr.update(visible=False)
             data.second_output_correctness = gr.update(visible=False)
-            data.second_output_responsiveness = gr.update(visible=False)
+            data.second_output_helpfulness = gr.update(visible=False)
             data.second_output_harmfulness = gr.update(visible=False)
             data.label = gr.update(visible=False)
             data.label_explanation = gr.update(visible=False)
@@ -276,11 +277,11 @@ class PairwiseOfflineFront(GradioFront):
             data.html_description,
             data.first_output,
             data.first_output_correctness,
-            data.first_output_responsiveness,
+            data.first_output_helpfulness,
             data.first_output_harmfulness,
             data.second_output,
             data.second_output_correctness,
-            data.second_output_responsiveness,
+            data.second_output_helpfulness,
             data.second_output_harmfulness,
             data.label,
             data.label_explanation,
