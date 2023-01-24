@@ -256,7 +256,7 @@ class PairwiseOfflineFront(GradioFront):
         user_id_idx = None
         print_attributes(self.column.parent.parent.children[2].children)
         for idx, child in enumerate(self.column.parent.parent.children[2].children):
-            if child.label == 'User ID':
+            if child.has_attr('label') and child.label == 'User ID':
                 user_id_idx = idx
 
         study_has_ended = False
