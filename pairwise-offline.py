@@ -258,7 +258,7 @@ class PairwiseOfflineFront(GradioFront):
         if client_id > 0:
             total_time = self.manager.client_statistics[client_id].total_time
             total_tasks = self.manager.client_statistics[client_id].total_tasks
-            study_has_ended = total_tasks > 15
+            study_has_ended = total_tasks > 20
             print(total_time, total_tasks)
 
         if study_has_ended is True:
