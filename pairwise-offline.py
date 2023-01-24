@@ -256,7 +256,7 @@ class PairwiseOfflineFront(GradioFront):
         user_id_idx = None
         print_attributes(self.column.parent.parent.children[2].children)
         for idx, child in enumerate(self.column.parent.parent.children[2].children):
-            if 'label' in child and child.label == 'User ID':
+            if child.label == 'User ID':
                 user_id_idx = idx
 
         study_has_ended = False
@@ -383,6 +383,7 @@ if __name__ == "__main__":
         pipeline_cls = PairwiseOfflinePipeline,
         client_cls = PairwiseOfflineFront,
         gradio = True,
+        no_login = True,
         pipeline_kwargs = {
             "iter" : data,
             "write_path" : result_filepath,
