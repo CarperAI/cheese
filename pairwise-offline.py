@@ -102,11 +102,6 @@ class PairwiseOfflinePipeline(IterablePipeline):
 
 
 class PairwiseOfflineFront(GradioFront):
-    def validate(self, *inp):
-        print_attributes(inp)
-        print(len(inp))
-        return inp
-
     def main(self):
         with gr.Column() as self.column:
             html_headline = gr.HTML("<p style=\"font-size: larger;\">Please read the study instructions <a href=\"https://docs.google.com/document/d/1R8RTZPClxe_4MwXX4B_BgcFgnbv1ynjZatVr3c7YmUo/edit\" style=\"text-decoration: underline; color: cornflowerblue;\">here</a> before participating.</p>")
@@ -181,59 +176,13 @@ class PairwiseOfflineFront(GradioFront):
             button
         ]
 
-        # TODO: validation
-        second_output_harmfulness.change(
-            self.validate,
-            outputs,
+        self.wrap_event(button.click)(
+            self.response,
+            inputs,
             outputs
         )
 
-        self.wrap_event(button.click)(
-            self.response,
-            inputs = [
-                first_output_correctness,
-                first_output_helpfulness,
-                first_output_harmfulness,
-                second_output_correctness,
-                second_output_helpfulness,
-                second_output_harmfulness,
-                label,
-                label_explanation
-            ],
-            outputs = [
-                html_headline,
-                prompt,
-                html_description,
-                first_output,
-                first_output_correctness,
-                first_output_helpfulness,
-                first_output_harmfulness,
-                second_output,
-                second_output_correctness,
-                second_output_helpfulness,
-                second_output_harmfulness,
-                label,
-                label_explanation,
-                button
-            ]
-        )
-
-        return [
-            html_headline,
-            prompt,
-            html_description,
-            first_output,
-            first_output_correctness,
-            first_output_helpfulness,
-            first_output_harmfulness,
-            second_output,
-            second_output_correctness,
-            second_output_helpfulness,
-            second_output_harmfulness,
-            label,
-            label_explanation,
-            button
-        ]
+        return outputs
 
     def receive(self, *inp):
         # TODO: test and clean this up
@@ -294,7 +243,7 @@ class PairwiseOfflineFront(GradioFront):
             data.label_explanation = gr.update(visible=False)
 
 
-        print_attributes(self.column.parent.parent)
+        # print_attributes(self.column.parent.parent)
 
 
         # user_id_idx = None
