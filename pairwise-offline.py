@@ -388,8 +388,8 @@ if __name__ == "__main__":
 
     print(cheese.launch()) # Prints the URL
 
-    # create 40 test users from the pre-generated cheese_users.csv db
-    with open("./cheese_users.csv", 'r') as data:
+    # create 200 test users from the pre-generated cheese_users_hh.csv db
+    with open("./cheese_users_hh.csv", 'r') as data:
         for line in csv.reader(data):
             print(cheese.create_client(int(line[0]), int(line[1])))
             #pass
