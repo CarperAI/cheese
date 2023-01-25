@@ -310,25 +310,25 @@ random.seed(43)
 
 # 125M
 # dataset = load_dataset("Dahoas/125M_hybrid_comparison", split="train")
-# result_filepath = "./125M_hybrid_comparison_result.csv"
+# result_filepath = "./125M_hybrid_comparison_result_125M_125M_synthetic.csv"
 # dataset = dataset.rename_column("125M", "first_output")
 # dataset = dataset.rename_column("125M_synthetic", "second_output")
 
 # 1B
 # dataset = load_dataset("Dahoas/1B_hybrid_comparison", split="train")
-# result_filepath = "./1B_hybrid_comparison_result.csv"
+# result_filepath = "./1B_hybrid_comparison_result_1B_1B_synthetic.csv"
 # dataset = dataset.rename_column("1B", "first_output")
 # dataset = dataset.rename_column("1B_synthetic", "second_output")
 
 # 6B
 # dataset = load_dataset("Dahoas/6B_hybrid_comparison", split="train")
-# result_filepath = "./6B_hybrid_comparison_result.csv"
+# result_filepath = "./6B_hybrid_comparison_result_6B_6B_synthetic.csv"
 # dataset = dataset.rename_column("6B", "first_output")
 # dataset = dataset.rename_column("6B_synthetic", "second_output")
 
 # 20B
 dataset = load_dataset("Dahoas/20B_hybrid_comparison", split="train")
-result_filepath = "./20B_hybrid_comparison_result.csv"
+result_filepath = "./20B_hybrid_comparison_result_20B_20B_synthetic.csv"
 dataset = dataset.rename_column("20B", "first_output")
 dataset = dataset.rename_column("20B_synthetic", "second_output")
 
