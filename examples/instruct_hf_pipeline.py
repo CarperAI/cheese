@@ -188,7 +188,7 @@ class LMFront(GradioFront):
     
     def receive(self, *inp):
         _, task, pressed_vals = inp
-        task.rankings = pressed_vals
+        task.data.rankings = pressed_vals
 
         return task
     
